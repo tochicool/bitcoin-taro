@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "bitcoin-taro:lib"
+
+    - path: "./app/Main.hs"
+      component: "bitcoin-taro:exe:bitcoin-taro-exe"
+
+    - path: "./app/Paths_bitcoin_taro.hs"
+      component: "bitcoin-taro:exe:bitcoin-taro-exe"
+
+    - path: "./test"
+      component: "bitcoin-taro:test:bitcoin-taro-test"

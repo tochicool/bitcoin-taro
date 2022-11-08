@@ -1,0 +1,21 @@
+-- Consider copying this to the .ghci in the project's root for debugging and testing 
+
+import Text.Pretty.Simple
+import Crypto.Hash (SHA256)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as BSL
+import Data.Maybe
+
+import Bitcoin
+import Bitcoin.Taro
+import Bitcoin.Taro.TLV as TLV
+import Bitcoin.Taro.MSSMT as MSSMT
+import Data.Binary
+
+import Hedgehog
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
+
+:set -XDataKinds -XTypeFamilies -XOverloadedStrings -XDuplicateRecordFields -XTypeApplications -XFlexibleContexts
+:set -interactive-print=pPrint
+:set prompt "\ESC[34mλ\ESC[33m฿\ESC[39m> "

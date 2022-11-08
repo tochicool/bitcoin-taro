@@ -1,0 +1,127 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           bitcoin-taro
+version:        0.1.0.0
+synopsis:       Bitcoin TARO library for Haskell
+description:    Please see the README on GitHub at <https://github.com/tochicool/bitcoin-taro#readme>
+category:       Bitcoin, Finance
+homepage:       https://github.com/tochicool/bitcoin-taro#readme
+bug-reports:    https://github.com/tochicool/bitcoin-taro/issues
+author:         Tochi Obudulu
+maintainer:     tochicool@gmail.com
+copyright:      2022 Tochi Obudulu
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+data-files:
+    test/vectors/Asset.root.encoding.hex
+    test/vectors/Asset.split.encoding.hex
+    test/vectors/BigSize.decoding.json
+    test/vectors/BigSize.encoding.json
+    test/vectors/Block.odd.encoding.hex
+    test/vectors/Proof.encoding.hex
+    test/vectors/Proof.split.encoding.hex
+    test/vectors/Tree.commitments.json
+    test/vectors/Tree.empty.digests.json
+
+source-repository head
+  type: git
+  location: https://github.com/tochicool/bitcoin-taro
+
+library
+  exposed-modules:
+      Bitcoin.Taro
+      Bitcoin.Taro.Address
+      Bitcoin.Taro.Asset
+      Bitcoin.Taro.MSSMT
+      Bitcoin.Taro.ProofFile
+      Bitcoin.Taro.TLV
+      Bitcoin.Taro.Util
+  other-modules:
+      Paths_bitcoin_taro
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      base >=4.7 && <5
+    , basement
+    , binary
+    , bitcoin
+    , bytestring
+    , containers
+    , cryptonite
+    , memory
+    , text
+    , vector
+  default-language: Haskell2010
+
+executable bitcoin-taro-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_bitcoin_taro
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      base >=4.7 && <5
+    , basement
+    , binary
+    , bitcoin
+    , bitcoin-taro
+    , bytestring
+    , containers
+    , cryptonite
+    , memory
+    , text
+    , vector
+  default-language: Haskell2010
+
+test-suite bitcoin-taro-test
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+      Bitcoin.Taro.AddressSpec
+      Bitcoin.Taro.AssetSpec
+      Bitcoin.Taro.MSSMTSpec
+      Bitcoin.Taro.ProofFileSpec
+      Bitcoin.Taro.TestUtils
+      Bitcoin.Taro.TLVSpec
+      Paths_bitcoin_taro
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , base16
+    , basement
+    , binary
+    , bitcoin
+    , bitcoin-taro
+    , bytestring
+    , containers
+    , cryptonite
+    , hedgehog
+    , hspec
+    , memory
+    , pretty-simple
+    , tasty
+    , tasty-hedgehog ==1.2.*
+    , tasty-hspec
+    , tasty-hunit
+    , text
+    , vector
+  default-language: Haskell2010

@@ -1,0 +1,12 @@
+resolver:
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/31.yaml
+
+packages:
+- .
+
+extra-deps:
+- github: haskell-bitcoin/bitcoin
+  commit: ad02fdd05a4845117a5c980f971c125e0cfe5296
+- tasty-hedgehog-1.2.0.0@sha256:4fb1d9ae578f47c0d677126395fe1c0e2e741558aaf169a1d2c015271c353980,1860
+
+system-ghc: true
