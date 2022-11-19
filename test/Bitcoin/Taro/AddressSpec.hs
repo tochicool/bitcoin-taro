@@ -83,7 +83,7 @@ test_Address_vectors =
     normalAddress =
       Address
         { taroVersion = Asset.TaroV0,
-          assetId =
+          assetGenesis =
             decode $ fromJust $ decodeHexLazy "8fcb18f0c3ef438a5210cec0f3ec07c5454904114dd61eda9623af7ea14104e7a2b59f23243032666335383066616430663032316163356366653039336339323564356431623964611202fc580fad0f021ac5cfe093c925d5d1b9da4e20d0df00",
           assetKeyFamily = Nothing,
           assetScriptKey = pubKey,

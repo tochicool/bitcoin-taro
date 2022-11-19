@@ -48,16 +48,13 @@ notable differences and elaborations from the BIPs (I think) the library has
 come across and has tried to replicate here:
 
 ### BIP-TARO
-* `asset_id` is explicitly, rather than implicitly, embedded in the Asset Leaf TLV: https://github.com/lightninglabs/taro/issues/62
-* `asset_script_key` is just 32 bytes for the schnorr public key, rather than 33 bytes with the extra parity byte
 * `genesis_outpoint.index` is in Big Endian, not in little endian as in the bitcoin wire format
 * `previous_asset_witnesses` has length prefix in BigSize, rather than u16
 * keys are encoding with their parity bytes: https://github.com/lightninglabs/taro/pull/187
 
 ### BIP-TARO-ADDR
 * bech32m encoding relaxes the 90 character length limit defined in BIP-173
-* `asset_id = 2` and is now explicitly embedded in the address TLV
-* the TLV type `asset_type` is removed as it is now embedded in `asset_id`
+* the TLV type `asset_type` is removed as it is now embedded in `asset_genesis`
 
 
 ### BIP-TARO-MS-SMT
@@ -68,4 +65,3 @@ come across and has tried to replicate here:
 * `asset_inclusion_proof.proof_version` is the 1 byte `asset_version`, not the 4 byte `proof_version`
 * `taro_inclusion_proof.proof_version` is the 1 byte `asset_version`, not the 4 byte `proof_version`
 * `taproot_exclusion_proof.bip86 = 2` 1 byte field added
-* checksum of proof file is embedded in each proof, rather than a single value for the whole file

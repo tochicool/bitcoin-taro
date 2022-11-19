@@ -31,10 +31,10 @@ import Test.Tasty.HUnit
 
 test_Asset :: IO [TestTree]
 test_Asset = do
-  let split@Asset {assetId = splitAssetId, assetType = splitAssetType} =
+  let split@Asset {assetGenesis = splitAssetGenesis, assetType = splitAssetType} =
         Asset
           { taroVersion = TaroVersion 1,
-            assetId =
+            assetGenesis =
               Genesis
                 { genesisOutpoint =
                     OutPoint
@@ -86,7 +86,7 @@ test_Asset = do
       root =
         Asset
           { taroVersion = TaroVersion 1,
-            assetId = splitAssetId,
+            assetGenesis = splitAssetGenesis,
             assetType = splitAssetType,
             amount = 1,
             lockTime = 1337,

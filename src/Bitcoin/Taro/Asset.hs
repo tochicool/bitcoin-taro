@@ -43,8 +43,8 @@ data Asset = Asset
   { -- | The version of Taro being used, which allows a client to determine
     -- which other values of this record to expect.
     taroVersion :: TaroVersion,
-    -- | The unique identifier of the asset.
-    assetId :: Genesis,
+    -- | The preimage of the identifier of the asset.
+    assetGenesis :: Genesis,
     -- | The type of the asset.
     assetType :: AssetType,
     -- | The amount of the asset held in this leaf position.
@@ -85,7 +85,7 @@ instance TLV.ToStream Asset where
   toStream Asset {..} =
     mempty
       `TLV.addRecord` (taroVersion `TLV.ofType` taroVersionTLV)
-      `TLV.addRecord` (assetId `TLV.ofDynamicType` assetIdTLV)
+      `TLV.addRecord` (assetGenesis `TLV.ofDynamicType` assetGenesisTLV)
       `TLV.addRecord` (assetType `TLV.ofType` assetTypeTLV)
       `TLV.addRecord` (TLV.BigSize amount `TLV.ofDynamicType` assetAmountTLV)
       `TLV.addRecords` case lockTime of
@@ -110,7 +110,7 @@ instance TLV.FromStream Asset where
       <$> m
       `TLV.getValue` taroVersionTLV
       <*> m
-      `TLV.getValue` assetIdTLV
+      `TLV.getValue` assetGenesisTLV
       <*> m
       `TLV.getValue` assetTypeTLV
       <*> (TLV.unBigSize <$> m `TLV.getValue` assetAmountTLV)
@@ -128,7 +128,7 @@ knownAssetTypes :: Set TLV.Type
 knownAssetTypes =
   Set.fromAscList
     [ taroVersionTLV,
-      assetIdTLV,
+      assetGenesisTLV,
       assetTypeTLV,
       assetAmountTLV,
       lockTimeTLV,
@@ -140,9 +140,9 @@ knownAssetTypes =
       assetFamilyKeyTLV
     ]
 
-taroVersionTLV, assetIdTLV, assetTypeTLV, assetAmountTLV, lockTimeTLV, relativeLockTimeTLV, previousAssetWitnessesTLV, splitCommitmentTLV, assetScriptVersionTLV, assetScriptKeyTLV, assetFamilyKeyTLV :: TLV.Type
+taroVersionTLV, assetGenesisTLV, assetTypeTLV, assetAmountTLV, lockTimeTLV, relativeLockTimeTLV, previousAssetWitnessesTLV, splitCommitmentTLV, assetScriptVersionTLV, assetScriptKeyTLV, assetFamilyKeyTLV :: TLV.Type
 taroVersionTLV = 0
-assetIdTLV = 1
+assetGenesisTLV = 1
 assetTypeTLV = 2
 assetAmountTLV = 3
 lockTimeTLV = 4
@@ -541,7 +541,7 @@ createNewAssetOutput totalUnits genesis@Genesis {assetType} assetScriptKey outpu
       asset =
         Asset
           { taroVersion = TaroV0,
-            assetId = genesis,
+            assetGenesis = genesis,
             assetType,
             amount = totalUnits,
             assetScriptVersion = AssetScriptV0,

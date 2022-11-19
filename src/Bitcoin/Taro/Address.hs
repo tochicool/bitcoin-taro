@@ -69,7 +69,7 @@ deriveHrp net
 -- | A taro address describes a single-asset Taro send.
 data Address = Address
   { taroVersion :: TaroVersion,
-    assetId :: Genesis,
+    assetGenesis :: Genesis,
     assetKeyFamily :: Maybe AssetKeyFamily,
     assetScriptKey :: PubKey,
     internalKey :: PubKey,
@@ -82,7 +82,7 @@ instance TLV.ToStream Address where
   toStream Address {..} =
     mempty
       `TLV.addRecord` (taroVersion `TLV.ofType` taroVersionTLV)
-      `TLV.addRecord` (assetId `TLV.ofDynamicType` assetIdTLV)
+      `TLV.addRecord` (assetGenesis `TLV.ofDynamicType` assetGenesisTLV)
       `TLV.addRecords` (assetKeyFamily <&> (`TLV.ofType` assetKeyFamilyTLV))
       `TLV.addRecord` (ParityPubKey assetScriptKey `TLV.ofType` assetScriptKeyTLV)
       `TLV.addRecord` (ParityPubKey internalKey `TLV.ofType` internalKeyTLV)
@@ -95,7 +95,7 @@ instance TLV.FromStream Address where
       <$> m
       `TLV.getValue` taroVersionTLV
       <*> m
-      `TLV.getValue` assetIdTLV
+      `TLV.getValue` assetGenesisTLV
       <*> optional (m `TLV.getValue` assetKeyFamilyTLV)
       <*> (unParityPubKey <$> m `TLV.getValue` assetScriptKeyTLV)
       <*> (unParityPubKey <$> m `TLV.getValue` internalKeyTLV)
@@ -105,16 +105,16 @@ knownAddressPayloadTypes :: Set TLV.Type
 knownAddressPayloadTypes =
   Set.fromAscList
     [ taroVersionTLV,
-      assetIdTLV,
+      assetGenesisTLV,
       assetKeyFamilyTLV,
       assetScriptKeyTLV,
       internalKeyTLV,
       amountTLV
     ]
 
-taroVersionTLV, assetIdTLV, assetKeyFamilyTLV, assetScriptKeyTLV, internalKeyTLV, amountTLV :: TLV.Type
+taroVersionTLV, assetGenesisTLV, assetKeyFamilyTLV, assetScriptKeyTLV, internalKeyTLV, amountTLV :: TLV.Type
 taroVersionTLV = 0
-assetIdTLV = 2
+assetGenesisTLV = 2
 assetKeyFamilyTLV = 3
 assetScriptKeyTLV = 4
 internalKeyTLV = 6
