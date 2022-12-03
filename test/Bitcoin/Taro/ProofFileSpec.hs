@@ -14,6 +14,7 @@ import qualified Data.Binary as Bin
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Base16 as BSL16
 import qualified Data.ByteString.Lazy.Char8 as BSL.Char8
+import Data.Char (isHexDigit)
 import Data.Either (fromRight)
 import Data.Maybe (fromJust)
 import Hedgehog (Gen)
@@ -66,7 +67,7 @@ test_TapScriptPreimage_encodeDecodeInverse =
 test_Proof :: IO [TestTree]
 test_Proof = do
     oddBlockEncodingFile <- getDataFileName "test/vectors/Block.odd.encoding.hex"
-    Block{blockHeader, blockTxns} <- Bin.decode . fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile oddBlockEncodingFile
+    Block{blockHeader, blockTxns} <- Bin.decode . fromRight "" . BSL16.decodeBase16 . BSL.Char8.takeWhile isHexDigit <$> BSL.readFile oddBlockEncodingFile
     let proof =
             Proof
                 { previousOutPoint = genesisOutpoint
@@ -164,9 +165,9 @@ test_Proof = do
         proofWithSplits = proof{taroInputSplits = [split, split]}
         split = file ProofV0 [proof, proof]
     proofEncodingFile <- getDataFileName "test/vectors/Proof.encoding.hex"
-    Right proofEncoding <- BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile proofEncodingFile
+    Right proofEncoding <- BSL16.decodeBase16 . BSL.Char8.takeWhile isHexDigit <$> BSL.readFile proofEncodingFile
     proofSplitEncodingFile <- getDataFileName "test/vectors/Proof.split.encoding.hex"
-    Right proofSplitEncoding <- BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile proofSplitEncodingFile
+    Right proofSplitEncoding <- BSL16.decodeBase16 . BSL.Char8.takeWhile isHexDigit <$> BSL.readFile proofSplitEncodingFile
     pure
         [ testGroup
             "Encoding"

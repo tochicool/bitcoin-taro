@@ -17,6 +17,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Base16 as BSL16
 import qualified Data.ByteString.Lazy.Char8 as BSL.Char8
+import Data.Char (isHexDigit)
 import Data.Either (fromRight)
 import Data.Foldable (toList)
 import Data.Map (Map)
@@ -128,9 +129,9 @@ test_Asset = do
                 , taroAttributes = mempty
                 }
     rootEncodingFile <- getDataFileName "test/vectors/Asset.root.encoding.hex"
-    rootEncoding <- fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile rootEncodingFile
+    rootEncoding <- fromRight "" . BSL16.decodeBase16 . BSL.Char8.takeWhile isHexDigit <$> BSL.readFile rootEncodingFile
     splitEncodingFile <- getDataFileName "test/vectors/Asset.split.encoding.hex"
-    splitEncoding <- fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile splitEncodingFile
+    splitEncoding <- fromRight "" . BSL16.decodeBase16 . BSL.Char8.takeWhile isHexDigit <$> BSL.readFile splitEncodingFile
     pure
         [ testGroup
             "Encoding"
