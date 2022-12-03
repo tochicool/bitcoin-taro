@@ -39,13 +39,13 @@ zeroDigest = fromJust $ digestFromByteString $ BS.pack $ replicate (fromIntegral
 
 -- | Utility newtype for encoding pub keys with the parity byte
 newtype ParityPubKey = ParityPubKey
-  { unParityPubKey :: PubKey
+  { unParityPubKey :: PubKeyXY
   }
 
 instance Binary ParityPubKey where
-  put = putByteString . exportPubKey True . unParityPubKey
+  put = putByteString . exportPubKeyXY True . unParityPubKey
   get = do
-    Just pubKey <- importPubKey <$> getByteString 33
+    Just pubKey <- importPubKeyXY <$> getByteString 33
     return $ ParityPubKey pubKey
 
 newtype HexString a = HexString a

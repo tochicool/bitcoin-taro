@@ -80,13 +80,13 @@ spec_BigSize = describe "BigSize test vectors" $ do
   forM_ decodingVectors $ \case
     BigSizeDecodingVector {name, value, bytes, exp_error}
       | Nothing <- exp_error ->
-          it ("should decode [" <> name <> "]") $ do
-            Just input <- pure $ decodeHexLazy (Text.pack bytes)
-            decodeOrFail input `shouldBe` Right (mempty, BSL.length input, BigSize value)
+        it ("should decode [" <> name <> "]") $ do
+          Just input <- pure $ decodeHexLazy (Text.pack bytes)
+          decodeOrFail input `shouldBe` Right (mempty, BSL.length input, BigSize value)
       | otherwise ->
-          it ("should fail to decode [" <> name <> "]") $ do
-            Just input <- pure $ decodeHexLazy (Text.pack bytes)
-            decodeOrFail input `shouldNotBe` Right (mempty, BSL.length input, BigSize value)
+        it ("should fail to decode [" <> name <> "]") $ do
+          Just input <- pure $ decodeHexLazy (Text.pack bytes)
+          decodeOrFail input `shouldNotBe` Right (mempty, BSL.length input, BigSize value)
   encodingVectors <- runIO $ do
     testVectorFile <- getDataFileName "test/vectors/BigSize.encoding.json"
     Just (vectors :: [BigSizeEncodingVector]) <- JSON.decodeFileStrict testVectorFile

@@ -64,10 +64,10 @@ instance FromJSON TreeCommitmentTestVector where
       <$> parseHex "leafKey"
       <*> (RawBytes . BSL.fromStrict <$> parseHex "leafValue")
       <*> v
-      .: "leafSum"
+        .: "leafSum"
       <*> parseDigest "leafHash"
       <*> v
-      .: "rootSum"
+        .: "rootSum"
       <*> parseDigest "rootHash"
     where
       parseDigest k = do
@@ -123,10 +123,10 @@ test_MerkleProof_compressDecompressInverse =
   testPropertyNamed
     "forall (x :: MerkleProof) . decompressMerkleProof (compressMerkleProof x) == x"
     "prop_MerkleProof_compress_decompress_inverse"
-    $ property
-    $ do
-      x <- forAll $ genCompressibleMerkleProof @() (Range.singleton 30)
-      decompressMerkleProof (compressMerkleProof x) === x
+    $ property $
+      do
+        x <- forAll $ genCompressibleMerkleProof @() (Range.singleton 30)
+        decompressMerkleProof (compressMerkleProof x) === x
 
 type TestMSSMT = MapMSSMT ByteString String
 
@@ -137,78 +137,78 @@ test_MSSMT_properties =
     [ testPropertyNamed
         "forall k v s t u . lookup k (insert k v s t <> u) = Just (v,s)"
         "MSSMT_inserts_members"
-        $ property
-        $ do
-          k <- forAll genKey
-          v <- forAll genValue
-          s <- forAll genSum
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          lookup k (insert k v s t <> u) === Just (v, s),
+        $ property $
+          do
+            k <- forAll genKey
+            v <- forAll genValue
+            s <- forAll genSum
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            lookup k (insert k v s t <> u) === Just (v, s),
       testPropertyNamed
         "forall k t . member k t = isJust (lookup k t)"
         "MSSMT_member_is_just_lookup"
-        $ property
-        $ do
-          k <- forAll genKey
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          member k t === isJust (lookup k t),
+        $ property $
+          do
+            k <- forAll genKey
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            member k t === isJust (lookup k t),
       testPropertyNamed
         "forall k t u . lookup k (delete k t <> u) = Nothing"
         "MSSMT_deletes_members"
-        $ property
-        $ do
-          k <- forAll genKey
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          lookup k (delete k t <> u) === Nothing,
+        $ property $
+          do
+            k <- forAll genKey
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            lookup k (delete k t <> u) === Nothing,
       testPropertyNamed
         "forall k v s t u . null (delete k (insert k v s mempty :: TestMSSMT))"
         "MSSMT_delete_inverts_insert"
-        $ property
-        $ do
-          k <- forAll genKey
-          v <- forAll genValue
-          s <- forAll genSum
-          assert $ null (delete k (insert k v s mempty :: TestMSSMT)),
+        $ property $
+          do
+            k <- forAll genKey
+            v <- forAll genValue
+            s <- forAll genSum
+            assert $ null (delete k (insert k v s mempty :: TestMSSMT)),
       testPropertyNamed
         "forall t u . sumValue (rootNode (t <> u)) = sumValue (rootNode t) + sumValue (rootNode u)"
         "MSSMT_root_sum_is_additive"
-        $ property
-        $ do
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          sumValue (rootNode (t <> u)) === sumValue (rootNode t) + sumValue (rootNode u),
+        $ property $
+          do
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            sumValue (rootNode (t <> u)) === sumValue (rootNode t) + sumValue (rootNode u),
       testPropertyNamed
         "forall t u . toCommitment (rootNode (t <> u)) = toCommitment (rootNode (u <> t))"
         "MSSMT_history_independence"
-        $ property
-        $ do
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          toCommitment (rootNode (t <> u)) === toCommitment (rootNode (u <> t)),
+        $ property $
+          do
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            toCommitment (rootNode (t <> u)) === toCommitment (rootNode (u <> t)),
       testPropertyNamed
         "forall k v s t u . verifyMerkleProof (rootNode t') k leaf (generateMerkleProof k t') where t' = insert k v s t <> u; leaf = Leaf (Just v) s Nothing"
         "MSSMT_accept_valid_inclusion_merkle_proof"
-        $ property
-        $ do
-          k <- forAll genKey
-          v <- forAll genValue
-          s <- forAll genSum
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          let t' = insert k v s t <> u
-              leaf = Leaf {value = Just v, MSSMT.leafSum = s, leafDigest = Nothing}
-          assert $ verifyMerkleProof (rootNode t') k leaf (generateMerkleProof k t'),
+        $ property $
+          do
+            k <- forAll genKey
+            v <- forAll genValue
+            s <- forAll genSum
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            u <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            let t' = insert k v s t <> u
+                leaf = Leaf {value = Just v, MSSMT.leafSum = s, leafDigest = Nothing}
+            assert $ verifyMerkleProof (rootNode t') k leaf (generateMerkleProof k t'),
       testPropertyNamed
         "forall k t . verifyMerkleProof (rootNode t') k emptyLeaf (generateMerkleProof k t') where t' = delete k t"
         "MSSMT_accept_valid_exclusion_merkle_proof"
-        $ property
-        $ do
-          k <- forAll genKey
-          t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
-          let t' = delete k t
-          assert $ verifyMerkleProof (rootNode t') k emptyLeaf (generateMerkleProof k t')
+        $ property $
+          do
+            k <- forAll genKey
+            t <- fromListTest <$> forAll (genTestTreeList (Range.linear 0 10))
+            let t' = delete k t
+            assert $ verifyMerkleProof (rootNode t') k emptyLeaf (generateMerkleProof k t')
     ]
 
 insertTuple :: (ByteString, String, Word64) -> TestMSSMT -> TestMSSMT

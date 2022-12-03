@@ -40,6 +40,7 @@ library
       Bitcoin.Taro
       Bitcoin.Taro.Address
       Bitcoin.Taro.Asset
+      Bitcoin.Taro.Commitment
       Bitcoin.Taro.MSSMT
       Bitcoin.Taro.ProofFile
       Bitcoin.Taro.TLV
@@ -60,6 +61,7 @@ library
     , containers
     , cryptonite
     , memory
+    , mtl
     , text
     , vector
   default-language: Haskell2010
@@ -83,6 +85,7 @@ executable bitcoin-taro-exe
     , containers
     , cryptonite
     , memory
+    , mtl
     , text
     , vector
   default-language: Haskell2010
@@ -93,6 +96,7 @@ test-suite bitcoin-taro-test
   other-modules:
       Bitcoin.Taro.AddressSpec
       Bitcoin.Taro.AssetSpec
+      Bitcoin.Taro.CommitmentSpec
       Bitcoin.Taro.MSSMTSpec
       Bitcoin.Taro.ProofFileSpec
       Bitcoin.Taro.TestUtils
@@ -117,6 +121,7 @@ test-suite bitcoin-taro-test
     , hedgehog
     , hspec
     , memory
+    , mtl
     , pretty-simple
     , tasty
     , tasty-hedgehog ==1.2.*

@@ -58,16 +58,16 @@ test_Address_fromToTextInverse =
   testPropertyNamed
     "forall (x :: Address, net :: Network) . (bech32ToAddress net =<< addressToBech32 net x) == Just x"
     "prop_addressToBech32_bech32ToAddress_inverse"
-    $ withTests 100
-    $ property
-    $ do
-      network <- forAll genTaroNetwork
-      address <- forAll genAddress
-      ( do
-          text <- addressToBech32 network address
-          bech32ToAddress network text
-        )
-        === Just address
+    $ withTests 100 $
+      property $
+        do
+          network <- forAll genTaroNetwork
+          address <- forAll genAddress
+          ( do
+              text <- addressToBech32 network address
+              bech32ToAddress network text
+            )
+            === Just address
 
 test_Address_vectors :: TestTree
 test_Address_vectors =

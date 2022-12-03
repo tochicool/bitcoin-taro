@@ -7,14 +7,32 @@ packages:
 - completed:
     name: bitcoin
     pantry-tree:
-      sha256: 47cc24c6562a1d1842ab89b9dc9e90e0822986c66cd2a75ad371a67141dbaa74
-      size: 7378
-    sha256: 523278d15558d4261cbac253153f144ade83008059ac00e6a7eadb0f3c954a25
-    size: 460572
-    url: https://github.com/haskell-bitcoin/bitcoin/archive/ad02fdd05a4845117a5c980f971c125e0cfe5296.tar.gz
+      sha256: 944bb771a6a48300047fcb1f9e89d0276d7eddd028d66307c69de80ceb4c1464
+      size: 7858
+    sha256: 14ac5768b339b282fdbc0042bb8b3dcc1218c9ef2fb2f23c2d0d6fdfbad87ba7
+    size: 3180973
+    url: https://github.com/tochicool/bitcoin/archive/140922f95c127a130f2d3c02802831e1d69a71f7.tar.gz
     version: 0.1.0
   original:
-    url: https://github.com/haskell-bitcoin/bitcoin/archive/ad02fdd05a4845117a5c980f971c125e0cfe5296.tar.gz
+    url: https://github.com/tochicool/bitcoin/archive/140922f95c127a130f2d3c02802831e1d69a71f7.tar.gz
+- completed:
+    name: libsecp256k1
+    pantry-tree:
+      sha256: e81e2a02eb41c57005a7bfeacbd54b29f8395667ddb912c2c9fae377f4791efa
+      size: 1259
+    sha256: 853107597d46f48b7ebb010bae145147db624ddd149f96fdcb23a0aafc59f47e
+    size: 30221
+    url: https://github.com/tochicool/libsecp256k1-haskell/archive/3a23ec0d8616bd3cc45e3b5764f604c4bed2e144.tar.gz
+    version: 0.1.0
+  original:
+    url: https://github.com/tochicool/libsecp256k1-haskell/archive/3a23ec0d8616bd3cc45e3b5764f604c4bed2e144.tar.gz
+- completed:
+    hackage: cryptonite-0.30@sha256:12c85dea7be63e5ad90bcb487eb3846bf3c413347f94336fa1dede7b28f9936a,18301
+    pantry-tree:
+      sha256: df1cbe4cc40d569cc75ffed40bc5deac43cb085653980b42b9b6a5d4b745a30a
+      size: 23323
+  original:
+    hackage: cryptonite-0.30@sha256:12c85dea7be63e5ad90bcb487eb3846bf3c413347f94336fa1dede7b28f9936a,18301
 - completed:
     hackage: tasty-hedgehog-1.2.0.0@sha256:4fb1d9ae578f47c0d677126395fe1c0e2e741558aaf169a1d2c015271c353980,1860
     pantry-tree:

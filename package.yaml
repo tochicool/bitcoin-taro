@@ -27,6 +27,7 @@ dependencies:
 - containers
 - cryptonite
 - memory
+- mtl
 - text
 - vector
 

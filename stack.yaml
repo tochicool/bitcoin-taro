@@ -5,8 +5,11 @@ packages:
 - .
 
 extra-deps:
-- github: haskell-bitcoin/bitcoin
-  commit: ad02fdd05a4845117a5c980f971c125e0cfe5296
+- github: tochicool/bitcoin
+  commit: 140922f95c127a130f2d3c02802831e1d69a71f7
+- github: tochicool/libsecp256k1-haskell
+  commit: 3a23ec0d8616bd3cc45e3b5764f604c4bed2e144
+- cryptonite-0.30@sha256:12c85dea7be63e5ad90bcb487eb3846bf3c413347f94336fa1dede7b28f9936a,18301
 - tasty-hedgehog-1.2.0.0@sha256:4fb1d9ae578f47c0d677126395fe1c0e2e741558aaf169a1d2c015271c353980,1860
 
 system-ghc: true

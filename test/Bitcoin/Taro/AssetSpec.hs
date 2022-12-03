@@ -1,5 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Bitcoin.Taro.AssetSpec where
@@ -11,7 +12,7 @@ import qualified Bitcoin.Taro.MSSMTSpec as MSSMT
 import qualified Bitcoin.Taro.TLV as TLV
 import Bitcoin.Taro.TestUtils
 import Crypto.Hash (digestFromByteString)
-import Data.Binary (decode, encode)
+import qualified Data.Binary as Bin
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Base16 as BSL16
@@ -28,6 +29,7 @@ import qualified Hedgehog.Range as Range
 import Paths_bitcoin_taro (getDataFileName)
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.Hedgehog (testPropertyNamed)
 
 test_Asset :: IO [TestTree]
 test_Asset = do
@@ -38,7 +40,7 @@ test_Asset = do
               Genesis
                 { genesisOutpoint =
                     OutPoint
-                      { outPointHash = decode hashBytes1,
+                      { outPointHash = Bin.decode hashBytes1,
                         outPointIndex = 1
                       },
                   assetTag = "asset",
@@ -57,7 +59,7 @@ test_Asset = do
                         PreviousAssetId
                           { previousOutpoint =
                               OutPoint
-                                { outPointHash = decode hashBytes1,
+                                { outPointHash = Bin.decode hashBytes1,
                                   outPointIndex = 1
                                 },
                             assetId = AssetId $ fromJust $ digestFromByteString $ BSL.toStrict hashBytes1,
@@ -98,7 +100,7 @@ test_Asset = do
                         PreviousAssetId
                           { previousOutpoint =
                               OutPoint
-                                { outPointHash = decode hashBytes2,
+                                { outPointHash = Bin.decode hashBytes2,
                                   outPointIndex = 2
                                 },
                             assetId = AssetId $ fromJust $ digestFromByteString $ BSL.toStrict hashBytes2,
@@ -133,23 +135,34 @@ test_Asset = do
     [ testGroup
         "Encoding"
         [ testCase "root" $
-            encodeHexLazy rootEncoding @=? encodeHexLazy (encode root),
+            encodeHexLazy rootEncoding @=? encodeHexLazy (Bin.encode root),
           testCase "split" $
-            encodeHexLazy splitEncoding @=? encodeHexLazy (encode split)
+            encodeHexLazy splitEncoding @=? encodeHexLazy (Bin.encode split)
         ],
       testGroup
         "Decoding"
         [ testCase "root" $
-            root @=? decode rootEncoding,
+            root @=? Bin.decode rootEncoding,
           testCase "split" $
-            split @=? decode splitEncoding
+            split @=? Bin.decode splitEncoding
         ]
     ]
   where
     hashBytes1 = BSL.pack $ replicate 32 1
     hashBytes2 = BSL.pack $ replicate 32 2
-    pubKey = fromJust $ importPubKey $ fromJust $ decodeHex "03a0afeb165f0ec36880b68e0baabd9ad9c62fd1a69aa998bc30e9a346202e078f"
-    sig = decode $ fromJust $ decodeHexLazy "e907831f80848d1069a5371b402410364bdf1c5f8307b0084c55f1ce2dca821525f66a4a85ea8b71e482a74f382d2ce5ebeee8fdb2172f477df4900d310536c0"
+    pubKey = fromJust $ importPubKeyXY $ fromJust $ decodeHex "03a0afeb165f0ec36880b68e0baabd9ad9c62fd1a69aa998bc30e9a346202e078f"
+    sig = fromJust $ importSignature $ fromJust $ decodeHex "e907831f80848d1069a5371b402410364bdf1c5f8307b0084c55f1ce2dca821525f66a4a85ea8b71e482a74f382d2ce5ebeee8fdb2172f477df4900d310536c0"
+
+test_FamilyKey_signVerify :: TestTree
+test_FamilyKey_signVerify =
+  testPropertyNamed
+    "forall (secKey, genesis) . genesis `isMemberOfFamily` familyKey secKey genesis"
+    "prop_FamilyKey_sign_verify_tautology"
+    $ property $
+      do
+        secKey <- forAll genSecKey
+        genesis <- forAll genGenesis
+        genesis `isMemberOfFamily` deriveFamilyKey secKey genesis === True
 
 test_Asset_encodeDecodeInverse :: TestTree
 test_Asset_encodeDecodeInverse = encodeDecodeInverse genAsset
@@ -182,6 +195,11 @@ genAsset =
     <*> Gen.maybe genFamilyKey
     <*> genUnknownAssetAttributes
 
+genAssetOfType :: AssetType -> Gen Asset
+genAssetOfType assetType = do
+  asset <- genAsset
+  return (asset :: Asset) {assetType}
+
 genTaroVersion :: Gen TaroVersion
 genTaroVersion = Gen.enumBounded
 
@@ -193,6 +211,11 @@ genGenesis =
     <*> (BSL.fromStrict <$> Gen.bytes (Range.linear 0 256))
     <*> Gen.word32 Range.linearBounded
     <*> Gen.enumBounded
+
+genGenesisOfType :: AssetType -> Gen Genesis
+genGenesisOfType assetType = do
+  genesis <- genGenesis
+  return (genesis :: Genesis) {assetType}
 
 genAssetType :: Gen AssetType
 genAssetType = Gen.enumBounded
@@ -235,6 +258,11 @@ genFamilyKey =
     <$> genPubKey
     <*> genSchnorrSig
 
+genFamilyKeyForGenesis :: Genesis -> Gen FamilyKey
+genFamilyKeyForGenesis genesis = do
+  secKey <- genSecKey
+  pure $ deriveFamilyKey secKey genesis
+
 genAssetKeyFamily :: Gen AssetKeyFamily
 genAssetKeyFamily = AssetKeyFamily <$> genPubKey
 
@@ -246,5 +274,5 @@ genUnknownAssetAttributes = Map.fromList <$> Gen.list (Range.linear 0 10) genUnk
       value <- BSL.fromStrict <$> Gen.bytes (Range.linear 1 256)
       pure (typ, value)
 
-genSchnorrSig :: Gen SchnorrSig
-genSchnorrSig = SchnorrSig . BSL.fromStrict <$> Gen.bytes (Range.singleton 64)
+genSchnorrSig :: Gen Signature
+genSchnorrSig = Gen.just $ importSignature <$> Gen.bytes (Range.singleton 64)

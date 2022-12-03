@@ -81,7 +81,10 @@ data MapMSSMT (k :: Type) a = MapMSSMT
     branches :: Map (Digest SHA256) (Branch a),
     leaves :: Map (Digest SHA256) (Leaf a)
   }
-  deriving (Generic, Show)
+  deriving (Generic, Eq)
+
+instance Binary a => Show (MapMSSMT k a) where
+  show MapMSSMT {root} = show root
 
 emptyMapMSSMT :: MapMSSMT k a
 emptyMapMSSMT =
@@ -155,7 +158,10 @@ data Node a
   | BranchNode (Branch a)
   | BranchCommitment (Commitment a)
   | LeafCommitment (Commitment a)
-  deriving (Generic, Show)
+  deriving (Generic)
+
+instance Binary a => Show (Node a) where
+  show = show . toCommitment
 
 instance Binary a => IsCommitment (Node a) where
   type NodeElem (Node a) = a
@@ -180,7 +186,7 @@ data Leaf a = Leaf
     leafSum :: Word64,
     leafDigest :: Maybe (Digest SHA256)
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance Binary a => IsCommitment (Leaf a) where
   type NodeElem (Leaf a) = a
@@ -199,7 +205,7 @@ data Branch a = Branch
     right :: Node a,
     commitment :: Maybe (Commitment a)
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance Binary a => IsCommitment (Branch a) where
   type NodeElem (Branch a) = a
@@ -445,9 +451,9 @@ decompressMerkleProof proof =
             | compressed,
               Just proofNode <- lookupEmptyNode height,
               height < maxTreeHeight ->
-                Just (toCommitment proofNode, (height + 1, p {compressionBits = compressionBits'}))
+              Just (toCommitment proofNode, (height + 1, p {compressionBits = compressionBits'}))
             | (proofHash : compressedProof') <- compressedProof ->
-                Just (proofHash, (height + 1, p {compressionBits = compressionBits', compressedProof = compressedProof'}))
+              Just (proofHash, (height + 1, p {compressionBits = compressionBits', compressedProof = compressedProof'}))
           _ | otherwise -> Nothing
       )
       (0 :: Int, proof)

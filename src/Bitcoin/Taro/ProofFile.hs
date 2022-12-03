@@ -221,7 +221,7 @@ data TaroTaprootProof = TaroTaprootProof
   { -- | The index of the taproot output that the proof is for.
     outputIndex :: Word32,
     -- | The internal key of the taproot output at 'outputIndex'.
-    internalKey :: PubKey,
+    internalKey :: PubKeyXY,
     -- | A commitment proof for an asset, proving the inclusion or exclusion of
     -- an asset within a Taro commitment.
     taprootAssetProof :: Maybe AssetProof,

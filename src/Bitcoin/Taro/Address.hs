@@ -19,7 +19,7 @@ module Bitcoin.Taro.Address
   )
 where
 
-import Bitcoin (Network, PubKey, btc, btcRegTest, btcTest)
+import Bitcoin (Network, PubKeyXY, btc, btcRegTest, btcTest)
 import Bitcoin.Address.Bech32
 import Bitcoin.Taro.Asset (AssetKeyFamily, Genesis, TaroVersion)
 import Bitcoin.Taro.TLV (TLV)
@@ -71,8 +71,8 @@ data Address = Address
   { taroVersion :: TaroVersion,
     assetGenesis :: Genesis,
     assetKeyFamily :: Maybe AssetKeyFamily,
-    assetScriptKey :: PubKey,
-    internalKey :: PubKey,
+    assetScriptKey :: PubKeyXY,
+    internalKey :: PubKeyXY,
     amount :: Word64
   }
   deriving (Generic, Show, Eq)

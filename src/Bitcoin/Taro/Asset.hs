@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
@@ -13,13 +14,14 @@
 
 module Bitcoin.Taro.Asset where
 
-import Bitcoin
+import Bitcoin hiding (decode)
 import qualified Bitcoin.Taro.MSSMT as MSSMT
 import Bitcoin.Taro.TLV (TLV)
 import qualified Bitcoin.Taro.TLV as TLV
 import Bitcoin.Taro.Util
 import Control.Applicative (optional, (<|>))
-import Control.Monad (guard, replicateM)
+import Control.Monad (foldM, guard, replicateM, unless)
+import Control.Monad.Except (MonadError, throwError)
 import Crypto.Hash (Digest, HashAlgorithm (hashDigestSize), SHA256 (SHA256), hash, hashFinalize, hashInit, hashUpdate, hashUpdates)
 import Data.Binary (Binary (get, put), Word64, decode, encode)
 import Data.Binary.Get (getByteString, getLazyByteString)
@@ -28,11 +30,15 @@ import qualified Data.ByteArray as BA
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
-import Data.Foldable (traverse_)
-import Data.IntMap as IntMap ( IntMap, lookup )
+import Data.Foldable (toList, traverse_)
+import Data.IntMap as IntMap (IntMap, lookup)
 import Data.List (genericLength, sort)
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (fromJust)
+import qualified Data.Sequence as Seq
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Word (Word16, Word32, Word8)
@@ -65,7 +71,7 @@ data Asset = Asset
     assetScriptVersion :: AssetScriptVersion,
     -- | The external public key derived in a BIP 341 manner which may commit to
     -- an asset script that encumbers the asset leaf.
-    assetScriptKey :: PubKey,
+    assetScriptKey :: PubKeyXY,
     -- | The 32-byte public key as defined by BIP-340 followed by a 64-byte
     -- BIP 340 signature over the asset. This key can be used to associate
     -- distinct assets as identified by their Asset Ids. This is an optional
@@ -155,7 +161,7 @@ assetFamilyKeyTLV = 10
 
 newtype TaroVersion
   = TaroVersion Word8
-  deriving (Generic, Show, Eq)
+  deriving (Generic, Show, Eq, Ord)
   deriving newtype (Enum, Bounded, Binary, TLV.StaticSize)
 
 pattern TaroV0 :: TaroVersion
@@ -163,7 +169,8 @@ pattern TaroV0 = TaroVersion 0
 
 data AssetId
   = AssetId (Digest SHA256)
-  | RevealedAssetId Genesis
+  | RevealedGenesis Genesis
+  | RevealedFamilyKey FamilyKey
   deriving (Generic, Show, Eq)
 
 instance TLV.StaticSize AssetId where
@@ -211,17 +218,17 @@ instance Binary Genesis where
 
 instance HasAssetId Genesis where
   opaqueAssetId Genesis {genesisOutpoint, assetTag, assetMeta, outputIndex, assetType} =
-    hashFinalize
-      $ hashUpdates
+    hashFinalize $
+      hashUpdates
         hashInit
-      $ BSL.toStrict
-        <$> [ encode genesisOutpoint,
-              assetTag,
-              assetMeta,
-              encode outputIndex,
-              encode assetType
-            ]
-  toAssetId = RevealedAssetId
+        $ BSL.toStrict
+          <$> [ encode genesisOutpoint,
+                assetTag,
+                assetMeta,
+                encode outputIndex,
+                encode assetType
+              ]
+  toAssetId = RevealedGenesis
 
 -- | An 'OutPoint' with the index decoded in Big-endian byte order.
 newtype TaroOutPoint = TaroOutPoint
@@ -319,7 +326,7 @@ instance Binary AssetWitnessStack where
 data PreviousAssetId = PreviousAssetId
   { previousOutpoint :: OutPoint,
     assetId :: AssetId,
-    assetScriptKey :: Maybe PubKey
+    assetScriptKey :: Maybe PubKeyXY
   }
   deriving (Generic, Show, Eq)
 
@@ -371,8 +378,8 @@ pattern AssetScriptV0 :: AssetScriptVersion
 pattern AssetScriptV0 = AssetScriptVersion 0
 
 data FamilyKey = FamilyKey
-  { key :: PubKey,
-    signature :: SchnorrSig
+  { key :: PubKeyXY,
+    signature :: Signature
   }
   deriving (Generic, Show, Eq)
 
@@ -382,11 +389,22 @@ instance TLV.StaticSize FamilyKey where
 instance Binary FamilyKey where
   put FamilyKey {..} = do
     put $ ParityPubKey key
-    put signature
+    putByteString $ exportSignatureCompact signature
   get =
     FamilyKey
       <$> (unParityPubKey <$> get)
-      <*> get
+      <*> do
+        Just sig <- importSignature <$> getByteString 64
+        return sig
+
+instance HasAssetId FamilyKey where
+  opaqueAssetId =
+    hashFinalize
+      . hashUpdate
+        hashInit
+      . BSL.toStrict
+      . encode
+  toAssetId = RevealedFamilyKey
 
 newtype SchnorrSig = SchnorrSig BSL.ByteString
   deriving (Generic, Show, Eq)
@@ -403,15 +421,16 @@ class HasAssetId a where
 instance HasAssetId AssetId where
   opaqueAssetId = \case
     AssetId assetId -> assetId
-    RevealedAssetId preimage -> opaqueAssetId preimage
+    RevealedGenesis genesis -> opaqueAssetId genesis
+    RevealedFamilyKey familyKey -> opaqueAssetId familyKey
 
 class HasAssetKeyFamily a where
-  opaqueAssetKeyFamily :: a -> PubKey
+  opaqueAssetKeyFamily :: a -> PubKeyXY
   toAssetKeyFamily :: a -> AssetKeyFamily
   toAssetKeyFamily = AssetKeyFamily . opaqueAssetKeyFamily
 
 data AssetKeyFamily
-  = AssetKeyFamily PubKey
+  = AssetKeyFamily PubKeyXY
   | RevealedAssetKeyFamily AssetKeyFamilyPreimage
   deriving (Generic, Show, Eq)
 
@@ -430,7 +449,7 @@ instance HasAssetKeyFamily AssetKeyFamily where
 
 data AssetKeyFamilyPreimage = AssetKeyFamilyPreimage
   { -- | A 32-byte public key.
-    assetKeyInternal :: PubKey,
+    assetKeyInternal :: PubKeyXY,
     -- | The first previous input outpoint used in the asset genesis transaction
     -- , serialized in Bitcoin wire format.
     genesisOutpoint :: OutPoint,
@@ -453,7 +472,7 @@ instance HasAssetKeyFamily AssetKeyFamilyPreimage where
                 hashFinalize $
                   hashUpdates
                     hashInit
-                    [ exportPubKey True assetKeyInternal,
+                    [ exportPubKeyXY True assetKeyInternal,
                       BSL.toStrict $ encode outputIndex,
                       BSL.toStrict $ encode assetType
                     ]
@@ -466,11 +485,11 @@ newtype AssetCommitment = AssetCommitment BSL.ByteString
 
 data TaroTapReveal
   = LeafReveal
-      { internalKey :: PubKey,
+      { internalKey :: PubKeyXY,
         leafBytes :: ByteString
       }
   | BranchReveal
-      { internalKey :: PubKey,
+      { internalKey :: PubKeyXY,
         sibling1Bytes :: ByteString,
         sibling2Bytes :: ByteString
       }
@@ -484,13 +503,26 @@ taroMarker = hash taroMarkerPreimage
 taroMarkerBS :: ByteString
 taroMarkerBS = BA.convert taroMarker
 
+isMemberOfFamily :: Genesis -> FamilyKey -> Bool
+genesis `isMemberOfFamily` FamilyKey {key, signature} =
+  schnorrVerify (fst $ xyToXO key) (BA.convert @(Digest SHA256) $ hash $ opaqueAssetId genesis) signature
+
+deriveFamilyKey :: SecKey -> Genesis -> FamilyKey
+deriveFamilyKey familySecretKey genesis =
+  FamilyKey
+    { key = derivePubKey familySecretKey,
+      signature = fromJust $ schnorrSign (keyPairCreate familySecretKey) message
+    }
+  where
+    message = BA.convert $ hash @_ @SHA256 $ opaqueAssetId genesis
+
 -- | Validate the uniqueness of a Taro commitment in a TapScript tree
 validTaroCommitment :: TxOut -> ScriptPathData -> Maybe TaroTapReveal -> ByteString -> Bool
 validTaroCommitment commitmentOutput ScriptPathData {scriptPathInternalKey, scriptPathControl} maybeSiblingPreimage taroRoot
   | Just rootHash <- maybeRootHash,
     Right (PayWitness 0x01 actualOutputKey) <- decodeOutputBS (scriptOutput commitmentOutput),
     expectedOutputKey <- taprootOutputKey $ TaprootOutput {taprootInternalKey = scriptPathInternalKey, taprootMAST = Just $ MASTCommitment rootHash} =
-      XOnlyPubKey expectedOutputKey == decode (BSL.fromStrict actualOutputKey)
+    XOnlyPubKey expectedOutputKey == decode (BSL.fromStrict actualOutputKey)
   | otherwise = False
   where
     maybeRootHash = case scriptPathControl of
@@ -516,13 +548,13 @@ validNoTaroUpMySleeves Tx {txOut} tapReveals taroRoot =
         | leafBytes == taroRoot -> False
         | leafHash <- hashLeaf leafBytes,
           expectedOutputKey <- taprootOutputKey $ TaprootOutput {taprootInternalKey = internalKey, taprootMAST = Just $ MASTCommitment leafHash} ->
-            XOnlyPubKey expectedOutputKey == actualOutputKey
+          XOnlyPubKey expectedOutputKey == actualOutputKey
       Just BranchReveal {internalKey, sibling1Bytes, sibling2Bytes}
         | sibling1Bytes == taroRoot -> False
         | sibling2Bytes == taroRoot -> False
         | branchHash <- hashBranch sibling1Bytes sibling2Bytes,
           expectedOutputKey <- taprootOutputKey $ TaprootOutput {taprootInternalKey = internalKey, taprootMAST = Just $ MASTCommitment branchHash} ->
-            XOnlyPubKey expectedOutputKey == actualOutputKey
+          XOnlyPubKey expectedOutputKey == actualOutputKey
 
 extractOutputKey :: TxOut -> Maybe XOnlyPubKey
 extractOutputKey txOut
@@ -535,7 +567,80 @@ hashLeaf = hashFinalize . hashUpdate (initTaggedHash "TapLeaf")
 hashBranch :: (BA.ByteArrayAccess a, Ord a) => a -> a -> Digest SHA256
 hashBranch l r = hashFinalize (initTaggedHash "TapBranch" `hashUpdates` sort [l, r])
 
-createNewAssetOutput :: Word64 -> Genesis -> PubKey -> PubKey -> TaprootOutput
+-- | The issuance of an asset.
+data Issuance = Issuance
+  { -- | The genesis of the asset being issued across all the emissions.
+    assetGenesis :: Genesis,
+    -- | The family key of a multi-issuance asset. This is Nothing for a single
+    -- issuance asset.
+    assetFamilyKey :: Maybe FamilyKey,
+    -- | The non-empty series of emissions of the asset in this batch.
+    emissions :: NonEmpty Emission
+  }
+  deriving (Generic, Show, Eq)
+
+-- | The properties that can be configured at each emission of an 'Asset' during
+-- 'Issuance'.
+data Emission = Emission
+  { -- | The script key of the asset emission.
+    assetScriptKey :: PubKeyXY,
+    -- | The amount of the asset to emit. This is ignored for 'CollectableAsset'
+    -- types.
+    amount :: Word64,
+    -- | The block time when an asset can be moved.
+    lockTime :: Word64,
+    -- | The block time when an asset can be moved, relative to the number of
+    -- blocks after the mining transaction.
+    relativeLockTime :: Word64,
+    -- Additional immutable attributes for the asset emission.
+    taroAttributes :: Map TLV.Type BSL.ByteString
+  }
+  deriving (Generic, Show, Eq)
+
+data IssuanceError
+  = UnsupportedAssetType
+  | ZeroEmissionForNormalAsset
+  | NonSingleEmissionForCollectableAsset
+  deriving (Generic, Show, Eq)
+
+-- | Issue a batch of assets for the given issuance if all emissions are valid,
+-- otherwise fail.
+mint :: MonadError IssuanceError m => Issuance -> m (NonEmpty Asset)
+mint Issuance {..} =
+  NonEmpty.fromList . toList
+    <$> foldM
+      ( \assets Emission {..} -> do
+          let Genesis {assetType} = assetGenesis
+          case assetType of
+            NormalAsset ->
+              unless (amount > 0) $
+                throwError ZeroEmissionForNormalAsset
+            CollectableAsset ->
+              unless (amount == 1) $
+                throwError NonSingleEmissionForCollectableAsset
+            _ ->
+              throwError UnsupportedAssetType
+          return $
+            assets
+              Seq.|> Asset
+                { taroVersion = TaroV0,
+                  assetGenesis,
+                  assetType,
+                  amount,
+                  assetScriptVersion = AssetScriptV0,
+                  assetScriptKey,
+                  lockTime,
+                  relativeLockTime,
+                  previousAssetWitnesses = mempty,
+                  splitCommitmentRoot = Nothing,
+                  assetFamilyKey,
+                  taroAttributes
+                }
+      )
+      mempty
+      emissions
+
+createNewAssetOutput :: Word64 -> Genesis -> PubKeyXY -> PubKeyXY -> TaprootOutput
 createNewAssetOutput totalUnits genesis@Genesis {assetType} assetScriptKey outputInternalKey =
   let assetId = toAssetId genesis
       asset =

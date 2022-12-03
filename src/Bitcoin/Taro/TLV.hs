@@ -196,16 +196,16 @@ newtype BigSize = BigSize
 instance Binary BigSize where
   put (BigSize x)
     | x < 0xfd =
-        put (integralDownsize x :: Word8)
+      put (integralDownsize x :: Word8)
     | x < 0x10000 = do
-        put (0xfd :: Word8)
-        put (integralDownsize x :: Word16)
+      put (0xfd :: Word8)
+      put (integralDownsize x :: Word16)
     | x < 0x100000000 = do
-        put (0xfe :: Word8)
-        put (integralDownsize x :: Word32)
+      put (0xfe :: Word8)
+      put (integralDownsize x :: Word32)
     | otherwise = do
-        put (0xff :: Word8)
-        put x
+      put (0xff :: Word8)
+      put x
   get =
     BigSize <$> do
       get @Word8 >>= \case

@@ -11,7 +11,8 @@ import Bitcoin.Taro.Util (ParityPubKey (..))
 import Control.Monad (replicateM)
 import Crypto.Hash (Digest, HashAlgorithm (..), digestFromByteString)
 import Crypto.Hash.IO (HashDigestSize)
-import Data.Binary (Binary, decode, encode)
+import Data.Binary (Binary)
+import qualified Data.Binary as Bin
 import qualified Data.ByteString.Lazy as BSL
 import Data.Char (isSpace)
 import Data.Data (Proxy (..), Typeable)
@@ -30,17 +31,22 @@ encodeDecodeInverseWith n gen =
   testPropertyNamed
     ("forall (x :: " <> dataType <> ") . decode (encode x) == x")
     ("prop_" <> fromString (propName dataType) <> "_encode_decode_inverse")
-    $ withTests n
-    $ property
-    $ do
-      x <- forAll gen
-      decode (encode x) === x
+    $ withTests n $
+      property $
+        do
+          x <- forAll gen
+          Bin.decode (Bin.encode x) === x
   where
     dataType = show $ typeRep (Proxy :: Proxy a)
-    propName = fmap $ \case
-      x
-        | isSpace x -> '_'
-        | otherwise -> x
+
+testPropertyNamed' :: TestName -> Property -> TestTree
+testPropertyNamed' name = testPropertyNamed name (fromString $ propName name)
+
+propName :: String -> String
+propName = fmap $ \case
+  x
+    | isSpace x -> '_'
+    | otherwise -> x
 
 encodeDecodeInverse :: forall a. (Show a, Eq a, Binary a, Typeable a) => Gen a -> TestTree
 encodeDecodeInverse = encodeDecodeInverseWith 100
@@ -54,11 +60,11 @@ genParityPubKey = ParityPubKey <$> genPubKey
 genXOnlyPubKey :: Gen XOnlyPubKey
 genXOnlyPubKey = XOnlyPubKey <$> genPubKey
 
-genPubKey :: Gen PubKey
+genPubKey :: Gen PubKeyXY
 genPubKey = derivePubKey <$> genSecKey
 
 genSecKey :: Gen SecKey
-genSecKey = Gen.just $ secKey <$> Gen.bytes (Range.singleton 32)
+genSecKey = Gen.just $ importSecKey <$> Gen.bytes (Range.singleton 32)
 
 genOutPoint :: Gen OutPoint
 genOutPoint =
