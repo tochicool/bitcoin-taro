@@ -31,33 +31,33 @@ putDigest = putByteString . BA.convert
 
 getDigest :: forall alg. (HashAlgorithm alg, KnownNat (HashDigestSize alg)) => Get (Digest alg)
 getDigest = do
-  Just digest <- digestFromByteString <$> getByteString (fromIntegral $ natVal $ Proxy @(HashDigestSize alg))
-  return digest
+    Just digest <- digestFromByteString <$> getByteString (fromIntegral $ natVal $ Proxy @(HashDigestSize alg))
+    return digest
 
 zeroDigest :: forall alg. (HashAlgorithm alg, KnownNat (HashDigestSize alg)) => Digest alg
 zeroDigest = fromJust $ digestFromByteString $ BS.pack $ replicate (fromIntegral $ natVal $ Proxy @(HashDigestSize alg)) 0
 
 -- | Utility newtype for encoding pub keys with the parity byte
 newtype ParityPubKey = ParityPubKey
-  { unParityPubKey :: PubKeyXY
-  }
+    { unParityPubKey :: PubKeyXY
+    }
 
 instance Binary ParityPubKey where
-  put = putByteString . exportPubKeyXY True . unParityPubKey
-  get = do
-    Just pubKey <- importPubKeyXY <$> getByteString 33
-    return $ ParityPubKey pubKey
+    put = putByteString . exportPubKeyXY True . unParityPubKey
+    get = do
+        Just pubKey <- importPubKeyXY <$> getByteString 33
+        return $ ParityPubKey pubKey
 
 newtype HexString a = HexString a
 
 instance Show (HexString BSL.ByteString) where
-  showsPrec n (HexString x) = showsPrec n (encodeHexLazy x)
+    showsPrec n (HexString x) = showsPrec n (encodeHexLazy x)
 
 -- | Utility newtype for encoding ByteStrings as is without a length prefix.
 newtype RawBytes = RawBytes
-  { unRawBytes :: BSL.ByteString
-  }
+    { unRawBytes :: BSL.ByteString
+    }
 
 instance Binary RawBytes where
-  put (RawBytes b) = putLazyByteString b
-  get = RawBytes <$> getRemainingLazyByteString
+    put (RawBytes b) = putLazyByteString b
+    get = RawBytes <$> getRemainingLazyByteString

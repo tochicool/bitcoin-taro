@@ -28,14 +28,14 @@ import Test.Tasty.Hedgehog
 
 encodeDecodeInverseWith :: forall a. (Show a, Eq a, Binary a, Typeable a) => TestLimit -> Gen a -> TestTree
 encodeDecodeInverseWith n gen =
-  testPropertyNamed
-    ("forall (x :: " <> dataType <> ") . decode (encode x) == x")
-    ("prop_" <> fromString (propName dataType) <> "_encode_decode_inverse")
-    $ withTests n $
-      property $
-        do
-          x <- forAll gen
-          Bin.decode (Bin.encode x) === x
+    testPropertyNamed
+        ("forall (x :: " <> dataType <> ") . decode (encode x) == x")
+        ("prop_" <> fromString (propName dataType) <> "_encode_decode_inverse")
+        $ withTests n
+        $ property
+        $ do
+            x <- forAll gen
+            Bin.decode (Bin.encode x) === x
   where
     dataType = show $ typeRep (Proxy :: Proxy a)
 
@@ -44,9 +44,9 @@ testPropertyNamed' name = testPropertyNamed name (fromString $ propName name)
 
 propName :: String -> String
 propName = fmap $ \case
-  x
-    | isSpace x -> '_'
-    | otherwise -> x
+    x
+        | isSpace x -> '_'
+        | otherwise -> x
 
 encodeDecodeInverse :: forall a. (Show a, Eq a, Binary a, Typeable a) => Gen a -> TestTree
 encodeDecodeInverse = encodeDecodeInverseWith 100
@@ -68,54 +68,54 @@ genSecKey = Gen.just $ importSecKey <$> Gen.bytes (Range.singleton 32)
 
 genOutPoint :: Gen OutPoint
 genOutPoint =
-  OutPoint
-    <$> genTxHash
-    <*> Gen.word32 Range.linearBounded
+    OutPoint
+        <$> genTxHash
+        <*> Gen.word32 Range.linearBounded
 
 genBlockHeader :: Gen BlockHeader
 genBlockHeader =
-  BlockHeader
-    <$> Gen.word32 Range.linearBounded
-    <*> genBlockHash
-    <*> genHash256
-    <*> Gen.word32 Range.linearBounded
-    <*> Gen.word32 Range.linearBounded
-    <*> Gen.word32 Range.linearBounded
+    BlockHeader
+        <$> Gen.word32 Range.linearBounded
+        <*> genBlockHash
+        <*> genHash256
+        <*> Gen.word32 Range.linearBounded
+        <*> Gen.word32 Range.linearBounded
+        <*> Gen.word32 Range.linearBounded
 
 genTx :: Gen Tx
 genTx = Gen.choice [genLegacyTx, genWitnessTx]
 
 genLegacyTx :: Gen Tx
 genLegacyTx =
-  Tx
-    <$> Gen.word32 Range.linearBounded
-    <*> Gen.list (Range.linear 1 10) genTxIn
-    <*> Gen.list (Range.linear 1 10) genTxOut
-    <*> pure []
-    <*> Gen.word32 Range.linearBounded
+    Tx
+        <$> Gen.word32 Range.linearBounded
+        <*> Gen.list (Range.linear 1 10) genTxIn
+        <*> Gen.list (Range.linear 1 10) genTxOut
+        <*> pure []
+        <*> Gen.word32 Range.linearBounded
 
 genWitnessTx :: Gen Tx
 genWitnessTx = do
-  numInputs <- Gen.int $ Range.linear 1 10
-  Tx
-    <$> Gen.word32 Range.linearBounded
-    <*> replicateM numInputs genTxIn
-    <*> Gen.list (Range.linear 1 10) genTxOut
-    <*> replicateM numInputs (Gen.filter (not . null) genWitnessStack)
-    <*> Gen.word32 Range.linearBounded
+    numInputs <- Gen.int $ Range.linear 1 10
+    Tx
+        <$> Gen.word32 Range.linearBounded
+        <*> replicateM numInputs genTxIn
+        <*> Gen.list (Range.linear 1 10) genTxOut
+        <*> replicateM numInputs (Gen.filter (not . null) genWitnessStack)
+        <*> Gen.word32 Range.linearBounded
 
 genTxIn :: Gen TxIn
 genTxIn =
-  TxIn
-    <$> genOutPoint
-    <*> Gen.bytes (Range.linear 0 100)
-    <*> Gen.word32 Range.linearBounded
+    TxIn
+        <$> genOutPoint
+        <*> Gen.bytes (Range.linear 0 100)
+        <*> Gen.word32 Range.linearBounded
 
 genTxOut :: Gen TxOut
 genTxOut =
-  TxOut
-    <$> Gen.word64 Range.linearBounded
-    <*> Gen.bytes (Range.linear 0 100)
+    TxOut
+        <$> Gen.word64 Range.linearBounded
+        <*> Gen.bytes (Range.linear 0 100)
 
 genBlockHash :: Gen BlockHash
 genBlockHash = BlockHash <$> genHash256

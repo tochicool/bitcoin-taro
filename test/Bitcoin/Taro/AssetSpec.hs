@@ -33,120 +33,120 @@ import Test.Tasty.Hedgehog (testPropertyNamed)
 
 test_Asset :: IO [TestTree]
 test_Asset = do
-  let split@Asset {assetGenesis = splitAssetGenesis, assetType = splitAssetType} =
-        Asset
-          { taroVersion = TaroVersion 1,
-            assetGenesis =
-              Genesis
-                { genesisOutpoint =
-                    OutPoint
-                      { outPointHash = Bin.decode hashBytes1,
-                        outPointIndex = 1
-                      },
-                  assetTag = "asset",
-                  assetMeta = BSL.pack [1, 2, 3],
-                  outputIndex = 1,
-                  assetType = CollectableAsset
-                },
-            assetType = CollectableAsset,
-            amount = 1,
-            lockTime = 1337,
-            relativeLockTime = 6,
-            previousAssetWitnesses =
-              [ AssetWitness
-                  { previousAssetId =
-                      Just
-                        PreviousAssetId
-                          { previousOutpoint =
-                              OutPoint
-                                { outPointHash = Bin.decode hashBytes1,
-                                  outPointIndex = 1
-                                },
-                            assetId = AssetId $ fromJust $ digestFromByteString $ BSL.toStrict hashBytes1,
-                            assetScriptKey = Just pubKey
-                          },
-                    assetWitness = [],
-                    splitCommitmentProof =
-                      Just $
-                        SplitCommitmentProof
-                          { proof = MSSMT.MerkleProof $ reverse $ toList (MSSMT.toCommitment <$> MSSMT.emptyBranches),
-                            rootAsset = root
-                          }
-                  }
-              ],
-            splitCommitmentRoot = Nothing,
-            assetScriptVersion = AssetScriptVersion 1,
-            assetScriptKey = pubKey,
-            assetFamilyKey =
-              Just
-                FamilyKey
-                  { key = pubKey,
-                    signature = sig
-                  },
-            taroAttributes = mempty
-          }
-      root =
-        Asset
-          { taroVersion = TaroVersion 1,
-            assetGenesis = splitAssetGenesis,
-            assetType = splitAssetType,
-            amount = 1,
-            lockTime = 1337,
-            relativeLockTime = 6,
-            previousAssetWitnesses =
-              [ AssetWitness
-                  { previousAssetId =
-                      Just
-                        PreviousAssetId
-                          { previousOutpoint =
-                              OutPoint
-                                { outPointHash = Bin.decode hashBytes2,
-                                  outPointIndex = 2
-                                },
-                            assetId = AssetId $ fromJust $ digestFromByteString $ BSL.toStrict hashBytes2,
-                            assetScriptKey = Just pubKey
-                          },
-                    assetWitness = [BS.pack [2], BS.pack [2]],
-                    splitCommitmentProof = Nothing
-                  }
-              ],
-            splitCommitmentRoot =
-              Just $
-                MSSMT.BranchCommitment $
-                  MSSMT.Commitment
-                    { commitDigest = fromJust $ digestFromByteString $ BSL.toStrict hashBytes1,
-                      commitSum = 1337
-                    },
-            assetScriptVersion = AssetScriptVersion 1,
-            assetScriptKey = pubKey,
-            assetFamilyKey =
-              Just
-                FamilyKey
-                  { key = pubKey,
-                    signature = sig
-                  },
-            taroAttributes = mempty
-          }
-  rootEncodingFile <- getDataFileName "test/vectors/Asset.root.encoding.hex"
-  rootEncoding <- fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile rootEncodingFile
-  splitEncodingFile <- getDataFileName "test/vectors/Asset.split.encoding.hex"
-  splitEncoding <- fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile splitEncodingFile
-  pure
-    [ testGroup
-        "Encoding"
-        [ testCase "root" $
-            encodeHexLazy rootEncoding @=? encodeHexLazy (Bin.encode root),
-          testCase "split" $
-            encodeHexLazy splitEncoding @=? encodeHexLazy (Bin.encode split)
-        ],
-      testGroup
-        "Decoding"
-        [ testCase "root" $
-            root @=? Bin.decode rootEncoding,
-          testCase "split" $
-            split @=? Bin.decode splitEncoding
+    let split@Asset{assetGenesis = splitAssetGenesis, assetType = splitAssetType} =
+            Asset
+                { taroVersion = TaroVersion 1
+                , assetGenesis =
+                    Genesis
+                        { genesisOutpoint =
+                            OutPoint
+                                { outPointHash = Bin.decode hashBytes1
+                                , outPointIndex = 1
+                                }
+                        , assetTag = "asset"
+                        , assetMeta = BSL.pack [1, 2, 3]
+                        , outputIndex = 1
+                        , assetType = CollectableAsset
+                        }
+                , assetType = CollectableAsset
+                , amount = 1
+                , lockTime = 1337
+                , relativeLockTime = 6
+                , previousAssetWitnesses =
+                    [ AssetWitness
+                        { previousAssetId =
+                            Just
+                                PreviousAssetId
+                                    { previousOutpoint =
+                                        OutPoint
+                                            { outPointHash = Bin.decode hashBytes1
+                                            , outPointIndex = 1
+                                            }
+                                    , assetId = AssetId $ fromJust $ digestFromByteString $ BSL.toStrict hashBytes1
+                                    , assetScriptKey = Just pubKey
+                                    }
+                        , assetWitness = []
+                        , splitCommitmentProof =
+                            Just $
+                                SplitCommitmentProof
+                                    { proof = MSSMT.MerkleProof $ reverse $ toList (MSSMT.toCommitment <$> MSSMT.emptyBranches)
+                                    , rootAsset = root
+                                    }
+                        }
+                    ]
+                , splitCommitmentRoot = Nothing
+                , assetScriptVersion = AssetScriptVersion 1
+                , assetScriptKey = pubKey
+                , assetFamilyKey =
+                    Just
+                        FamilyKey
+                            { key = pubKey
+                            , signature = sig
+                            }
+                , taroAttributes = mempty
+                }
+        root =
+            Asset
+                { taroVersion = TaroVersion 1
+                , assetGenesis = splitAssetGenesis
+                , assetType = splitAssetType
+                , amount = 1
+                , lockTime = 1337
+                , relativeLockTime = 6
+                , previousAssetWitnesses =
+                    [ AssetWitness
+                        { previousAssetId =
+                            Just
+                                PreviousAssetId
+                                    { previousOutpoint =
+                                        OutPoint
+                                            { outPointHash = Bin.decode hashBytes2
+                                            , outPointIndex = 2
+                                            }
+                                    , assetId = AssetId $ fromJust $ digestFromByteString $ BSL.toStrict hashBytes2
+                                    , assetScriptKey = Just pubKey
+                                    }
+                        , assetWitness = [BS.pack [2], BS.pack [2]]
+                        , splitCommitmentProof = Nothing
+                        }
+                    ]
+                , splitCommitmentRoot =
+                    Just $
+                        MSSMT.BranchCommitment $
+                            MSSMT.Commitment
+                                { commitDigest = fromJust $ digestFromByteString $ BSL.toStrict hashBytes1
+                                , commitSum = 1337
+                                }
+                , assetScriptVersion = AssetScriptVersion 1
+                , assetScriptKey = pubKey
+                , assetFamilyKey =
+                    Just
+                        FamilyKey
+                            { key = pubKey
+                            , signature = sig
+                            }
+                , taroAttributes = mempty
+                }
+    rootEncodingFile <- getDataFileName "test/vectors/Asset.root.encoding.hex"
+    rootEncoding <- fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile rootEncodingFile
+    splitEncodingFile <- getDataFileName "test/vectors/Asset.split.encoding.hex"
+    splitEncoding <- fromRight "" . BSL16.decodeBase16 . head . BSL.Char8.lines <$> BSL.readFile splitEncodingFile
+    pure
+        [ testGroup
+            "Encoding"
+            [ testCase "root" $
+                encodeHexLazy rootEncoding @=? encodeHexLazy (Bin.encode root)
+            , testCase "split" $
+                encodeHexLazy splitEncoding @=? encodeHexLazy (Bin.encode split)
+            ]
+        , testGroup
+            "Decoding"
+            [ testCase "root" $
+                root @=? Bin.decode rootEncoding
+            , testCase "split" $
+                split @=? Bin.decode splitEncoding
+            ]
         ]
-    ]
   where
     hashBytes1 = BSL.pack $ replicate 32 1
     hashBytes2 = BSL.pack $ replicate 32 2
@@ -155,14 +155,14 @@ test_Asset = do
 
 test_FamilyKey_signVerify :: TestTree
 test_FamilyKey_signVerify =
-  testPropertyNamed
-    "forall (secKey, genesis) . genesis `isMemberOfFamily` familyKey secKey genesis"
-    "prop_FamilyKey_sign_verify_tautology"
-    $ property $
-      do
-        secKey <- forAll genSecKey
-        genesis <- forAll genGenesis
-        genesis `isMemberOfFamily` deriveFamilyKey secKey genesis === True
+    testPropertyNamed
+        "forall (secKey, genesis) . genesis `isMemberOfFamily` familyKey secKey genesis"
+        "prop_FamilyKey_sign_verify_tautology"
+        $ property
+        $ do
+            secKey <- forAll genSecKey
+            genesis <- forAll genGenesis
+            genesis `isMemberOfFamily` deriveFamilyKey secKey genesis === True
 
 test_Asset_encodeDecodeInverse :: TestTree
 test_Asset_encodeDecodeInverse = encodeDecodeInverse genAsset
@@ -181,41 +181,41 @@ test_SplitCommitmentProof_encodeDecodeInverse = encodeDecodeInverse genSplitComm
 
 genAsset :: Gen Asset
 genAsset =
-  Asset
-    <$> genTaroVersion
-    <*> genGenesis
-    <*> genAssetType
-    <*> Gen.word64 Range.linearBounded
-    <*> Gen.word64 Range.linearBounded
-    <*> Gen.word64 Range.linearBounded
-    <*> Gen.small genAssetWitnesses
-    <*> Gen.maybe MSSMT.genRootNode
-    <*> Gen.enumBounded
-    <*> genPubKey
-    <*> Gen.maybe genFamilyKey
-    <*> genUnknownAssetAttributes
+    Asset
+        <$> genTaroVersion
+        <*> genGenesis
+        <*> genAssetType
+        <*> Gen.word64 Range.linearBounded
+        <*> Gen.word64 Range.linearBounded
+        <*> Gen.word64 Range.linearBounded
+        <*> Gen.small genAssetWitnesses
+        <*> Gen.maybe MSSMT.genRootNode
+        <*> Gen.enumBounded
+        <*> genPubKey
+        <*> Gen.maybe genFamilyKey
+        <*> genUnknownAssetAttributes
 
 genAssetOfType :: AssetType -> Gen Asset
 genAssetOfType assetType = do
-  asset <- genAsset
-  return (asset :: Asset) {assetType}
+    asset <- genAsset
+    return (asset :: Asset){assetType}
 
 genTaroVersion :: Gen TaroVersion
 genTaroVersion = Gen.enumBounded
 
 genGenesis :: Gen Genesis
 genGenesis =
-  Genesis
-    <$> genOutPoint
-    <*> (BSL.fromStrict <$> Gen.bytes (Range.linear 0 256))
-    <*> (BSL.fromStrict <$> Gen.bytes (Range.linear 0 256))
-    <*> Gen.word32 Range.linearBounded
-    <*> Gen.enumBounded
+    Genesis
+        <$> genOutPoint
+        <*> (BSL.fromStrict <$> Gen.bytes (Range.linear 0 256))
+        <*> (BSL.fromStrict <$> Gen.bytes (Range.linear 0 256))
+        <*> Gen.word32 Range.linearBounded
+        <*> Gen.enumBounded
 
 genGenesisOfType :: AssetType -> Gen Genesis
 genGenesisOfType assetType = do
-  genesis <- genGenesis
-  return (genesis :: Genesis) {assetType}
+    genesis <- genGenesis
+    return (genesis :: Genesis){assetType}
 
 genAssetType :: Gen AssetType
 genAssetType = Gen.enumBounded
@@ -225,43 +225,43 @@ genAssetWitnesses = Gen.list (Range.linear 0 10) genAssetWitness
 
 genAssetWitness :: Gen AssetWitness
 genAssetWitness =
-  Gen.filter canonical $
-    AssetWitness
-      <$> Gen.maybe genPreviousAssetId
-      <*> genWitnessStack
-      <*> Gen.maybe genSplitCommitmentProof
+    Gen.filter canonical $
+        AssetWitness
+            <$> Gen.maybe genPreviousAssetId
+            <*> genWitnessStack
+            <*> Gen.maybe genSplitCommitmentProof
   where
     canonical = \case
-      AssetWitness {previousAssetId = Nothing, splitCommitmentProof = Nothing} -> False
-      AssetWitness {previousAssetId = Just {}, assetWitness = []} -> False
-      _ -> True
+        AssetWitness{previousAssetId = Nothing, splitCommitmentProof = Nothing} -> False
+        AssetWitness{previousAssetId = Just{}, assetWitness = []} -> False
+        _ -> True
 
 genPreviousAssetId :: Gen PreviousAssetId
 genPreviousAssetId =
-  PreviousAssetId
-    <$> genOutPoint
-    <*> genAssetId
-    <*> Gen.maybe genPubKey
+    PreviousAssetId
+        <$> genOutPoint
+        <*> genAssetId
+        <*> Gen.maybe genPubKey
 
 genSplitCommitmentProof :: Gen SplitCommitmentProof
 genSplitCommitmentProof =
-  SplitCommitmentProof
-    <$> MSSMT.genMerkleProof
-    <*> Gen.small genAsset
+    SplitCommitmentProof
+        <$> MSSMT.genMerkleProof
+        <*> Gen.small genAsset
 
 genAssetId :: Gen AssetId
 genAssetId = AssetId <$> genDigest
 
 genFamilyKey :: Gen FamilyKey
 genFamilyKey =
-  FamilyKey
-    <$> genPubKey
-    <*> genSchnorrSig
+    FamilyKey
+        <$> genPubKey
+        <*> genSchnorrSig
 
 genFamilyKeyForGenesis :: Genesis -> Gen FamilyKey
 genFamilyKeyForGenesis genesis = do
-  secKey <- genSecKey
-  pure $ deriveFamilyKey secKey genesis
+    secKey <- genSecKey
+    pure $ deriveFamilyKey secKey genesis
 
 genAssetKeyFamily :: Gen AssetKeyFamily
 genAssetKeyFamily = AssetKeyFamily <$> genPubKey
@@ -270,9 +270,9 @@ genUnknownAssetAttributes :: Gen (Map TLV.Type BSL.ByteString)
 genUnknownAssetAttributes = Map.fromList <$> Gen.list (Range.linear 0 10) genUnknownField
   where
     genUnknownField = do
-      typ <- Gen.filterT (`Set.notMember` knownAssetTypes) $ Gen.integral (Range.linear minBound maxBound)
-      value <- BSL.fromStrict <$> Gen.bytes (Range.linear 1 256)
-      pure (typ, value)
+        typ <- Gen.filterT (`Set.notMember` knownAssetTypes) $ Gen.integral (Range.linear minBound maxBound)
+        value <- BSL.fromStrict <$> Gen.bytes (Range.linear 1 256)
+        pure (typ, value)
 
 genSchnorrSig :: Gen Signature
 genSchnorrSig = Gen.just $ importSignature <$> Gen.bytes (Range.singleton 64)

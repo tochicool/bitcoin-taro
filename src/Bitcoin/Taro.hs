@@ -1,12 +1,11 @@
-module Bitcoin.Taro
-  ( module Bitcoin.Taro.Address,
+module Bitcoin.Taro (
+    module Bitcoin.Taro.Address,
     module Bitcoin.Taro.Asset,
     module Bitcoin.Taro.MSSMT,
     module Bitcoin.Taro.ProofFile,
     module Bitcoin.Taro.TLV,
     module Bitcoin.Taro.Util,
-  )
-where
+) where
 
 import Bitcoin.Taro.Address
 import Bitcoin.Taro.Asset
