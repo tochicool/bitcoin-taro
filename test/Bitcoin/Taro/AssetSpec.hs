@@ -77,9 +77,9 @@ test_Asset = do
                 , splitCommitmentRoot = Nothing
                 , assetScriptVersion = AssetScriptVersion 1
                 , assetScriptKey = pubKey
-                , assetFamilyKey =
+                , assetGroupKey =
                     Just
-                        FamilyKey
+                        GroupKey
                             { key = pubKey
                             , signature = sig
                             }
@@ -119,9 +119,9 @@ test_Asset = do
                                 }
                 , assetScriptVersion = AssetScriptVersion 1
                 , assetScriptKey = pubKey
-                , assetFamilyKey =
+                , assetGroupKey =
                     Just
-                        FamilyKey
+                        GroupKey
                             { key = pubKey
                             , signature = sig
                             }
@@ -153,16 +153,16 @@ test_Asset = do
     pubKey = fromJust $ importPubKeyXY $ fromJust $ decodeHex "03a0afeb165f0ec36880b68e0baabd9ad9c62fd1a69aa998bc30e9a346202e078f"
     sig = fromJust $ importSignature $ fromJust $ decodeHex "e907831f80848d1069a5371b402410364bdf1c5f8307b0084c55f1ce2dca821525f66a4a85ea8b71e482a74f382d2ce5ebeee8fdb2172f477df4900d310536c0"
 
-test_FamilyKey_signVerify :: TestTree
-test_FamilyKey_signVerify =
+test_GroupKey_signVerify :: TestTree
+test_GroupKey_signVerify =
     testPropertyNamed
-        "forall (secKey, genesis) . genesis `isMemberOfFamily` familyKey secKey genesis"
-        "prop_FamilyKey_sign_verify_tautology"
+        "forall (secKey, genesis) . genesis `isMemberOfGroup` groupKey secKey genesis"
+        "prop_GroupKey_sign_verify_tautology"
         $ property
         $ do
             secKey <- forAll genSecKey
             genesis <- forAll genGenesis
-            genesis `isMemberOfFamily` deriveFamilyKey secKey genesis === True
+            genesis `isMemberOfGroup` deriveGroupKey secKey genesis === True
 
 test_Asset_encodeDecodeInverse :: TestTree
 test_Asset_encodeDecodeInverse = encodeDecodeInverse genAsset
@@ -192,7 +192,7 @@ genAsset =
         <*> Gen.maybe MSSMT.genRootNode
         <*> Gen.enumBounded
         <*> genPubKey
-        <*> Gen.maybe genFamilyKey
+        <*> Gen.maybe genGroupKey
         <*> genUnknownAssetAttributes
 
 genAssetOfType :: AssetType -> Gen Asset
@@ -252,19 +252,19 @@ genSplitCommitmentProof =
 genAssetId :: Gen AssetId
 genAssetId = AssetId <$> genDigest
 
-genFamilyKey :: Gen FamilyKey
-genFamilyKey =
-    FamilyKey
+genGroupKey :: Gen GroupKey
+genGroupKey =
+    GroupKey
         <$> genPubKey
         <*> genSchnorrSig
 
-genFamilyKeyForGenesis :: Genesis -> Gen FamilyKey
-genFamilyKeyForGenesis genesis = do
+genGroupKeyForGenesis :: Genesis -> Gen GroupKey
+genGroupKeyForGenesis genesis = do
     secKey <- genSecKey
-    pure $ deriveFamilyKey secKey genesis
+    pure $ deriveGroupKey secKey genesis
 
-genAssetKeyFamily :: Gen AssetKeyFamily
-genAssetKeyFamily = AssetKeyFamily <$> genPubKey
+genAssetKeyGroup :: Gen AssetKeyGroup
+genAssetKeyGroup = AssetKeyGroup <$> genPubKey
 
 genUnknownAssetAttributes :: Gen (Map TLV.Type BSL.ByteString)
 genUnknownAssetAttributes = Map.fromList <$> Gen.list (Range.linear 0 10) genUnknownField

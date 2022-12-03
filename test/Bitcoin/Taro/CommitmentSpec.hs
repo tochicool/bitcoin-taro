@@ -70,7 +70,7 @@ test_mint =
         return
             Asset.Issuance
                 { assetGenesis
-                , assetFamilyKey = Nothing
+                , assetGroupKey = Nothing
                 , emissions =
                     NonEmpty.singleton $
                         Asset.Emission
@@ -87,20 +87,20 @@ test_commitAssets =
     testGroup
         "commitAssets"
         [ testPropertyNamed'
-            "family key mismatch"
+            "group key mismatch"
             $ withTests 1
             $ property
             $ do
                 genesis <- forAll genGenesis
                 genesis' <- forAll genGenesis
-                familyKey <- forAll $ Just <$> genFamilyKey genesis
-                familyKey' <- forAll $ Just <$> genFamilyKey genesis'
-                asset <- forAll $ genAsset genesis familyKey
-                asset' <- forAll $ genAsset genesis familyKey'
+                groupKey <- forAll $ Just <$> genGroupKey genesis
+                groupKey' <- forAll $ Just <$> genGroupKey genesis'
+                asset <- forAll $ genAsset genesis groupKey
+                asset' <- forAll $ genAsset genesis groupKey'
                 fmap assetCommitmentLeaf (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
-                    === Left (AssetFamilyKeyMismatch familyKey familyKey')
+                    === Left (AssetGroupKeyMismatch groupKey groupKey')
         , testPropertyNamed'
-            "no family key asset id mismatch"
+            "no group key asset id mismatch"
             $ withTests 1
             $ property
             $ do
@@ -111,51 +111,51 @@ test_commitAssets =
                 fmap assetCommitmentLeaf (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
                     === Left (AssetGenesisMismatch genesis genesis')
         , testPropertyNamed'
-            "same family key asset id mismatch"
+            "same group key asset id mismatch"
             $ withTests 1
             $ property
             $ do
                 genesis <- forAll genGenesis
                 genesis' <- forAll genGenesis
-                familyKey@(Just fk) <- forAll $ Just <$> genFamilyKey genesis
-                asset <- forAll $ genAsset genesis familyKey
-                asset' <- forAll $ genAsset genesis' familyKey
+                groupKey@(Just fk) <- forAll $ Just <$> genGroupKey genesis
+                asset <- forAll $ genAsset genesis groupKey
+                asset' <- forAll $ genAsset genesis' groupKey
                 fmap assetCommitmentLeaf (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
-                    === Left (AssetGenesisNotMemberOfFamily genesis' fk)
+                    === Left (AssetGenesisNotMemberOfGroup genesis' fk)
         , testPropertyNamed'
             "duplicate script key"
             $ withTests 1
             $ property
             $ do
                 genesis <- forAll genGenesis
-                familyKey <- forAll $ Just <$> genFamilyKey genesis
-                asset'' <- forAll $ genAsset genesis familyKey
-                asset'@Asset{assetScriptKey} <- forAll $ genAsset genesis familyKey
+                groupKey <- forAll $ Just <$> genGroupKey genesis
+                asset'' <- forAll $ genAsset genesis groupKey
+                asset'@Asset{assetScriptKey} <- forAll $ genAsset genesis groupKey
                 let asset = asset''{assetScriptKey}
                 fmap assetCommitmentLeaf (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
                     === Left (AssetScriptKeyNotUnique (assetCommitmentKey asset))
         , testPropertyNamed'
-            "valid normal asset commitment with family key"
+            "valid normal asset commitment with group key"
             $ withTests 1
             $ property
             $ do
                 genesis <- forAll genGenesis
-                familyKey <- forAll $ Just <$> genFamilyKey genesis
-                asset <- forAll $ genAsset genesis familyKey
-                asset' <- forAll $ genAsset genesis familyKey
+                groupKey <- forAll $ Just <$> genGroupKey genesis
+                asset <- forAll $ genAsset genesis groupKey
+                asset' <- forAll $ genAsset genesis groupKey
                 assert $ isRight (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
         , testPropertyNamed'
-            "valid collectible asset commitment with family key"
+            "valid collectible asset commitment with group key"
             $ withTests 1
             $ property
             $ do
                 genesis <- forAll genGenesisCollectible
-                familyKey <- forAll $ Just <$> genFamilyKey genesis
-                asset <- forAll $ genAsset genesis familyKey
-                asset' <- forAll $ genAsset genesis familyKey
+                groupKey <- forAll $ Just <$> genGroupKey genesis
+                asset <- forAll $ genAsset genesis groupKey
+                asset' <- forAll $ genAsset genesis groupKey
                 assert $ isRight (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
         , testPropertyNamed'
-            "valid normal asset commitment without family key"
+            "valid normal asset commitment without group key"
             $ withTests 1
             $ property
             $ do
@@ -164,7 +164,7 @@ test_commitAssets =
                 asset' <- forAll $ genAsset genesis Nothing
                 assert $ isRight (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
         , testPropertyNamed'
-            "valid collectible asset commitment without family key"
+            "valid collectible asset commitment without group key"
             $ withTests 1
             $ property
             $ do
@@ -174,10 +174,10 @@ test_commitAssets =
                 assert $ isRight (commitAssets @TestAssetTree (NonEmpty.fromList [asset, asset']))
         ]
 
-genAsset :: Asset.Genesis -> Maybe Asset.FamilyKey -> Gen Asset
-genAsset assetGenesis assetFamilyKey = do
+genAsset :: Asset.Genesis -> Maybe Asset.GroupKey -> Gen Asset
+genAsset assetGenesis assetGroupKey = do
     asset <- Asset.genAsset
-    return $ (asset :: Asset){Asset.assetGenesis, Asset.assetFamilyKey}
+    return $ (asset :: Asset){Asset.assetGenesis, Asset.assetGroupKey}
 
 genGenesis :: Gen Asset.Genesis
 genGenesis = Asset.genGenesisOfType Asset.NormalAsset
@@ -185,5 +185,5 @@ genGenesis = Asset.genGenesisOfType Asset.NormalAsset
 genGenesisCollectible :: Gen Asset.Genesis
 genGenesisCollectible = Asset.genGenesisOfType Asset.CollectableAsset
 
-genFamilyKey :: Asset.Genesis -> Gen Asset.FamilyKey
-genFamilyKey = Asset.genFamilyKeyForGenesis
+genGroupKey :: Asset.Genesis -> Gen Asset.GroupKey
+genGroupKey = Asset.genGroupKeyForGenesis

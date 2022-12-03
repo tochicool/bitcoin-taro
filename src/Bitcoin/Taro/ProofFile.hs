@@ -368,7 +368,7 @@ data AssetInclusionProof = AssetInclusionProof
     -- ^ The maximum version of the assets committed.
     , assetId :: Asset.AssetId
     -- ^ The common identifier for all assets found within the asset commitment.
-    -- This can either be an `Asset.AssetId` or `Asset.FamilyKey`.
+    -- This can either be an `Asset.AssetId` or `Asset.GroupKey`.
     , msMstInclusionProof :: MSSMT.MerkleProof Asset.Asset
     -- ^ The proof that is used along with an asset leaf to arrive at the root
     -- of the inner asset commitment MS-SMT.

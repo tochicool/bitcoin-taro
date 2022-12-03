@@ -68,11 +68,11 @@ data Asset = Asset
     -- distribution for normal assets.
     , assetScriptVersion :: AssetScriptVersion
     -- ^ The 2 byte asset script version that governs how the asset script key
-    -- and the family script key is to be validated.
+    -- and the group script key is to be validated.
     , assetScriptKey :: PubKeyXY
     -- ^ The external public key derived in a BIP 341 manner which may commit to
     -- an asset script that encumbers the asset leaf.
-    , assetFamilyKey :: Maybe FamilyKey
+    , assetGroupKey :: Maybe GroupKey
     -- ^ The 32-byte public key as defined by BIP-340 followed by a 64-byte
     -- BIP 340 signature over the asset. This key can be used to associate
     -- distinct assets as identified by their Asset Ids. This is an optional
@@ -106,7 +106,7 @@ instance TLV.ToStream Asset where
             `TLV.addRecords` fmap (\root -> MSSMT.toCommitment root `TLV.ofType` splitCommitmentTLV) splitCommitmentRoot
             `TLV.addRecord` (assetScriptVersion `TLV.ofType` assetScriptVersionTLV)
             `TLV.addRecord` (ParityPubKey assetScriptKey `TLV.ofType` assetScriptKeyTLV)
-            `TLV.addRecords` fmap (`TLV.ofType` assetFamilyKeyTLV) assetFamilyKey
+            `TLV.addRecords` fmap (`TLV.ofType` assetGroupKeyTLV) assetGroupKey
             <> TLV.mapToStream taroAttributes
 
 instance TLV.FromStream Asset where
@@ -127,7 +127,7 @@ instance TLV.FromStream Asset where
             <*> m
             `TLV.getValue` assetScriptVersionTLV
             <*> (unParityPubKey <$> m `TLV.getValue` assetScriptKeyTLV)
-            <*> optional (m `TLV.getValue` assetFamilyKeyTLV)
+            <*> optional (m `TLV.getValue` assetGroupKeyTLV)
             <*> pure (m `Map.withoutKeys` knownAssetTypes)
 
 knownAssetTypes :: Set TLV.Type
@@ -143,10 +143,10 @@ knownAssetTypes =
         , splitCommitmentTLV
         , assetScriptVersionTLV
         , assetScriptKeyTLV
-        , assetFamilyKeyTLV
+        , assetGroupKeyTLV
         ]
 
-taroVersionTLV, assetGenesisTLV, assetTypeTLV, assetAmountTLV, lockTimeTLV, relativeLockTimeTLV, previousAssetWitnessesTLV, splitCommitmentTLV, assetScriptVersionTLV, assetScriptKeyTLV, assetFamilyKeyTLV :: TLV.Type
+taroVersionTLV, assetGenesisTLV, assetTypeTLV, assetAmountTLV, lockTimeTLV, relativeLockTimeTLV, previousAssetWitnessesTLV, splitCommitmentTLV, assetScriptVersionTLV, assetScriptKeyTLV, assetGroupKeyTLV :: TLV.Type
 taroVersionTLV = 0
 assetGenesisTLV = 1
 assetTypeTLV = 2
@@ -157,7 +157,7 @@ previousAssetWitnessesTLV = 6
 splitCommitmentTLV = 7
 assetScriptVersionTLV = 8
 assetScriptKeyTLV = 9
-assetFamilyKeyTLV = 10
+assetGroupKeyTLV = 10
 
 newtype TaroVersion
     = TaroVersion Word8
@@ -170,7 +170,7 @@ pattern TaroV0 = TaroVersion 0
 data AssetId
     = AssetId (Digest SHA256)
     | RevealedGenesis Genesis
-    | RevealedFamilyKey FamilyKey
+    | RevealedGroupKey GroupKey
     deriving (Generic, Show, Eq)
 
 instance TLV.StaticSize AssetId where
@@ -187,7 +187,7 @@ data Genesis = Genesis
     -- serialized in Bitcoin wire format.
     , assetTag :: BSL.ByteString
     -- ^ A random 32-byte value that represents a given asset, and can be used to
-    -- link a series of discrete assets into a single asset family. In practice,
+    -- link a series of discrete assets into a single asset group. In practice,
     -- this will typically be the hash of a human readable asset name.
     , assetMeta :: BSL.ByteString
     -- ^ An opaque 32-byte value that can be used to commit to various metadata
@@ -377,34 +377,34 @@ newtype AssetScriptVersion = AssetScriptVersion Word16
 pattern AssetScriptV0 :: AssetScriptVersion
 pattern AssetScriptV0 = AssetScriptVersion 0
 
-data FamilyKey = FamilyKey
+data GroupKey = GroupKey
     { key :: PubKeyXY
     , signature :: Signature
     }
     deriving (Generic, Show, Eq)
 
-instance TLV.StaticSize FamilyKey where
+instance TLV.StaticSize GroupKey where
     staticSize = 33 + 64
 
-instance Binary FamilyKey where
-    put FamilyKey{..} = do
+instance Binary GroupKey where
+    put GroupKey{..} = do
         put $ ParityPubKey key
         putByteString $ exportSignatureCompact signature
     get =
-        FamilyKey
+        GroupKey
             <$> (unParityPubKey <$> get)
             <*> do
                 Just sig <- importSignature <$> getByteString 64
                 return sig
 
-instance HasAssetId FamilyKey where
+instance HasAssetId GroupKey where
     opaqueAssetId =
         hashFinalize
             . hashUpdate
                 hashInit
             . BSL.toStrict
             . encode
-    toAssetId = RevealedFamilyKey
+    toAssetId = RevealedGroupKey
 
 newtype SchnorrSig = SchnorrSig BSL.ByteString
     deriving (Generic, Show, Eq)
@@ -422,32 +422,32 @@ instance HasAssetId AssetId where
     opaqueAssetId = \case
         AssetId assetId -> assetId
         RevealedGenesis genesis -> opaqueAssetId genesis
-        RevealedFamilyKey familyKey -> opaqueAssetId familyKey
+        RevealedGroupKey groupKey -> opaqueAssetId groupKey
 
-class HasAssetKeyFamily a where
-    opaqueAssetKeyFamily :: a -> PubKeyXY
-    toAssetKeyFamily :: a -> AssetKeyFamily
-    toAssetKeyFamily = AssetKeyFamily . opaqueAssetKeyFamily
+class HasAssetKeyGroup a where
+    opaqueAssetKeyGroup :: a -> PubKeyXY
+    toAssetKeyGroup :: a -> AssetKeyGroup
+    toAssetKeyGroup = AssetKeyGroup . opaqueAssetKeyGroup
 
-data AssetKeyFamily
-    = AssetKeyFamily PubKeyXY
-    | RevealedAssetKeyFamily AssetKeyFamilyPreimage
+data AssetKeyGroup
+    = AssetKeyGroup PubKeyXY
+    | RevealedAssetKeyGroup AssetKeyGroupPreimage
     deriving (Generic, Show, Eq)
 
-instance TLV.StaticSize AssetKeyFamily where
+instance TLV.StaticSize AssetKeyGroup where
     staticSize = TLV.staticSize @ParityPubKey
 
-instance Binary AssetKeyFamily where
-    put = put . ParityPubKey . opaqueAssetKeyFamily
-    get = AssetKeyFamily . unParityPubKey <$> get
+instance Binary AssetKeyGroup where
+    put = put . ParityPubKey . opaqueAssetKeyGroup
+    get = AssetKeyGroup . unParityPubKey <$> get
 
-instance HasAssetKeyFamily AssetKeyFamily where
-    opaqueAssetKeyFamily = \case
-        AssetKeyFamily digest -> digest
-        RevealedAssetKeyFamily keyFamily -> opaqueAssetKeyFamily keyFamily
-    toAssetKeyFamily = id
+instance HasAssetKeyGroup AssetKeyGroup where
+    opaqueAssetKeyGroup = \case
+        AssetKeyGroup digest -> digest
+        RevealedAssetKeyGroup keyGroup -> opaqueAssetKeyGroup keyGroup
+    toAssetKeyGroup = id
 
-data AssetKeyFamilyPreimage = AssetKeyFamilyPreimage
+data AssetKeyGroupPreimage = AssetKeyGroupPreimage
     { assetKeyInternal :: PubKeyXY
     -- ^ A 32-byte public key.
     , genesisOutpoint :: OutPoint
@@ -461,8 +461,8 @@ data AssetKeyFamilyPreimage = AssetKeyFamilyPreimage
     }
     deriving (Generic, Show, Eq)
 
-instance HasAssetKeyFamily AssetKeyFamilyPreimage where
-    opaqueAssetKeyFamily AssetKeyFamilyPreimage{..} =
+instance HasAssetKeyGroup AssetKeyGroupPreimage where
+    opaqueAssetKeyGroup AssetKeyGroupPreimage{..} =
         taprootOutputKey $
             TaprootOutput
                 { taprootInternalKey = assetKeyInternal
@@ -477,7 +477,7 @@ instance HasAssetKeyFamily AssetKeyFamilyPreimage where
                                     , BSL.toStrict $ encode assetType
                                     ]
                 }
-    toAssetKeyFamily = RevealedAssetKeyFamily
+    toAssetKeyGroup = RevealedAssetKeyGroup
 
 newtype AssetCommitment = AssetCommitment BSL.ByteString
     deriving (Generic, Show, Eq)
@@ -503,15 +503,15 @@ taroMarker = hash taroMarkerPreimage
 taroMarkerBS :: ByteString
 taroMarkerBS = BA.convert taroMarker
 
-isMemberOfFamily :: Genesis -> FamilyKey -> Bool
-genesis `isMemberOfFamily` FamilyKey{key, signature} =
+isMemberOfGroup :: Genesis -> GroupKey -> Bool
+genesis `isMemberOfGroup` GroupKey{key, signature} =
     schnorrVerify (fst $ xyToXO key) (BA.convert @(Digest SHA256) $ hash $ opaqueAssetId genesis) signature
 
-deriveFamilyKey :: SecKey -> Genesis -> FamilyKey
-deriveFamilyKey familySecretKey genesis =
-    FamilyKey
-        { key = derivePubKey familySecretKey
-        , signature = fromJust $ schnorrSign (keyPairCreate familySecretKey) message
+deriveGroupKey :: SecKey -> Genesis -> GroupKey
+deriveGroupKey groupSecretKey genesis =
+    GroupKey
+        { key = derivePubKey groupSecretKey
+        , signature = fromJust $ schnorrSign (keyPairCreate groupSecretKey) message
         }
   where
     message = BA.convert $ hash @_ @SHA256 $ opaqueAssetId genesis
@@ -571,8 +571,8 @@ hashBranch l r = hashFinalize (initTaggedHash "TapBranch" `hashUpdates` sort [l,
 data Issuance = Issuance
     { assetGenesis :: Genesis
     -- ^ The genesis of the asset being issued across all the emissions.
-    , assetFamilyKey :: Maybe FamilyKey
-    -- ^ The family key of a multi-issuance asset. This is Nothing for a single
+    , assetGroupKey :: Maybe GroupKey
+    -- ^ The group key of a multi-issuance asset. This is Nothing for a single
     -- issuance asset.
     , emissions :: NonEmpty Emission
     -- ^ The non-empty series of emissions of the asset in this batch.
@@ -635,7 +635,7 @@ mint Issuance{..} =
                             , relativeLockTime
                             , previousAssetWitnesses = mempty
                             , splitCommitmentRoot = Nothing
-                            , assetFamilyKey
+                            , assetGroupKey
                             , taroAttributes
                             }
             )
@@ -657,7 +657,7 @@ createNewAssetOutput totalUnits genesis@Genesis{assetType} assetScriptKey output
                 , relativeLockTime = 0
                 , previousAssetWitnesses = mempty
                 , splitCommitmentRoot = Nothing
-                , assetFamilyKey = Nothing
+                , assetGroupKey = Nothing
                 , taroAttributes = mempty
                 }
         innerMsSmtDigest =

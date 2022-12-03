@@ -20,7 +20,7 @@ module Bitcoin.Taro.Address (
 
 import Bitcoin (Network, PubKeyXY, btc, btcRegTest, btcTest)
 import Bitcoin.Address.Bech32
-import Bitcoin.Taro.Asset (AssetKeyFamily, Genesis, TaroVersion)
+import Bitcoin.Taro.Asset (AssetKeyGroup, Genesis, TaroVersion)
 import Bitcoin.Taro.TLV (TLV)
 import qualified Bitcoin.Taro.TLV as TLV
 import Bitcoin.Taro.Util (ParityPubKey (..))
@@ -69,7 +69,7 @@ deriveHrp net
 data Address = Address
     { taroVersion :: TaroVersion
     , assetGenesis :: Genesis
-    , assetKeyFamily :: Maybe AssetKeyFamily
+    , assetKeyGroup :: Maybe AssetKeyGroup
     , assetScriptKey :: PubKeyXY
     , internalKey :: PubKeyXY
     , amount :: Word64
@@ -82,7 +82,7 @@ instance TLV.ToStream Address where
         mempty
             `TLV.addRecord` (taroVersion `TLV.ofType` taroVersionTLV)
             `TLV.addRecord` (assetGenesis `TLV.ofDynamicType` assetGenesisTLV)
-            `TLV.addRecords` (assetKeyFamily <&> (`TLV.ofType` assetKeyFamilyTLV))
+            `TLV.addRecords` (assetKeyGroup <&> (`TLV.ofType` assetKeyGroupTLV))
             `TLV.addRecord` (ParityPubKey assetScriptKey `TLV.ofType` assetScriptKeyTLV)
             `TLV.addRecord` (ParityPubKey internalKey `TLV.ofType` internalKeyTLV)
             `TLV.addRecord` (TLV.BigSize amount `TLV.ofDynamicType` amountTLV)
@@ -95,7 +95,7 @@ instance TLV.FromStream Address where
             `TLV.getValue` taroVersionTLV
             <*> m
             `TLV.getValue` assetGenesisTLV
-            <*> optional (m `TLV.getValue` assetKeyFamilyTLV)
+            <*> optional (m `TLV.getValue` assetKeyGroupTLV)
             <*> (unParityPubKey <$> m `TLV.getValue` assetScriptKeyTLV)
             <*> (unParityPubKey <$> m `TLV.getValue` internalKeyTLV)
             <*> (TLV.unBigSize <$> m `TLV.getValue` amountTLV)
@@ -105,16 +105,16 @@ knownAddressPayloadTypes =
     Set.fromAscList
         [ taroVersionTLV
         , assetGenesisTLV
-        , assetKeyFamilyTLV
+        , assetKeyGroupTLV
         , assetScriptKeyTLV
         , internalKeyTLV
         , amountTLV
         ]
 
-taroVersionTLV, assetGenesisTLV, assetKeyFamilyTLV, assetScriptKeyTLV, internalKeyTLV, amountTLV :: TLV.Type
+taroVersionTLV, assetGenesisTLV, assetKeyGroupTLV, assetScriptKeyTLV, internalKeyTLV, amountTLV :: TLV.Type
 taroVersionTLV = 0
 assetGenesisTLV = 2
-assetKeyFamilyTLV = 3
+assetKeyGroupTLV = 3
 assetScriptKeyTLV = 4
 internalKeyTLV = 6
 amountTLV = 8

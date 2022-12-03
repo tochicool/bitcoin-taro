@@ -51,7 +51,7 @@ mint issuance = do
  concatenation of the asset version, the asset tree root, and the asset_sum.
 
  The leaves within the asset commitment inner MS-MST commit to an 'Asset' set.
- Each asset leaf in the inner tree is keyed by the asset family key if it
+ Each asset leaf in the inner tree is keyed by the asset group key if it
  exists, otherwise the asset id.
 -}
 data TaroCommitment t = TaroCommitment
@@ -103,7 +103,7 @@ commitAssetCommitments commitments = do
         commitments
 
 {- | The inner MS-SMT within the Taro protocol, whose leaves commit to an
- 'Asset' set. Each asset leaf in the inner tree is keyed by the asset family
+ 'Asset' set. Each asset leaf in the inner tree is keyed by the asset group
  key if it exists, otherwise the asset id.
 -}
 data AssetCommitment t = AssetCommitment
@@ -163,8 +163,8 @@ assetRootId AssetCommitment{assetId, treeRoot = root@MSSMT.Branch{left, right}} 
 
 data AssetError
     = AssetGenesisMismatch Asset.Genesis Asset.Genesis
-    | AssetFamilyKeyMismatch (Maybe Asset.FamilyKey) (Maybe Asset.FamilyKey)
-    | AssetGenesisNotMemberOfFamily Asset.Genesis Asset.FamilyKey
+    | AssetGroupKeyMismatch (Maybe Asset.GroupKey) (Maybe Asset.GroupKey)
+    | AssetGenesisNotMemberOfGroup Asset.Genesis Asset.GroupKey
     | AssetScriptKeyNotUnique (Digest SHA256)
     deriving (Generic, Show, Eq)
 
@@ -172,28 +172,28 @@ type AssetTreeWriter t m = (MSSMT.TreeWriter m t, MSSMT.Key t ~ Digest SHA256, M
 
 {- | Constructs a new 'AssetCommitment' from the given 'Asset' set, which can be
  used to compute merkle proofs. This function validates that the assets:
- * all related within the same asset family or have the same asset ID
+ * all related within the same asset group or have the same asset ID
  * all have unique asset commitment keys within the asset commitment
  and will return an error otherwise.
 -}
 commitAssets :: forall t m. (AssetTreeWriter t m, MonadError AssetError m) => NonEmpty Asset.Asset -> m (AssetCommitment t)
-commitAssets (headAsset@Asset.Asset{assetGenesis = expectedGenesis, assetFamilyKey = expectedFamilyKey} :| tailAssets) = do
+commitAssets (headAsset@Asset.Asset{assetGenesis = expectedGenesis, assetGroupKey = expectedGroupKey} :| tailAssets) = do
     commitment <- commitAsset headAsset
     foldM
-        ( \AssetCommitment{version, assetId, treeRoot, tree} asset@Asset.Asset{amount, assetGenesis, assetFamilyKey} -> do
+        ( \AssetCommitment{version, assetId, treeRoot, tree} asset@Asset.Asset{amount, assetGenesis, assetGroupKey} -> do
             let key = assetCommitmentKey asset
-            unless (expectedFamilyKey == assetFamilyKey) $
+            unless (expectedGroupKey == assetGroupKey) $
                 throwError $
-                    AssetFamilyKeyMismatch expectedFamilyKey assetFamilyKey
-            case expectedFamilyKey of
+                    AssetGroupKeyMismatch expectedGroupKey assetGroupKey
+            case expectedGroupKey of
                 Nothing ->
                     unless (expectedGenesis == assetGenesis) $
                         throwError $
                             AssetGenesisMismatch expectedGenesis assetGenesis
-                Just familyKey ->
-                    unless (assetGenesis `Asset.isMemberOfFamily` familyKey) $
+                Just groupKey ->
+                    unless (assetGenesis `Asset.isMemberOfGroup` groupKey) $
                         throwError $
-                            AssetGenesisNotMemberOfFamily assetGenesis familyKey
+                            AssetGenesisNotMemberOfGroup assetGenesis groupKey
             (newTreeRoot, newTree) <- case tree of
                 Nothing -> return (treeRoot, Nothing)
                 Just t -> do
@@ -231,9 +231,9 @@ commitAsset asset@Asset.Asset{taroVersion, assetGenesis, amount} = do
 
 -- | The owner of an 'Asset' within an 'AssetCommitment'.
 assetCommitmentKey :: Asset.Asset -> Digest SHA256
-assetCommitmentKey Asset.Asset{assetGenesis, assetFamilyKey, assetScriptKey} =
+assetCommitmentKey Asset.Asset{assetGenesis, assetGroupKey, assetScriptKey} =
     let keyBytes = encode $ XOnlyPubKey assetScriptKey
-     in case assetFamilyKey of
+     in case assetGroupKey of
             Nothing -> hash $ BSL.toStrict keyBytes
             _ ->
                 hashFinalize $
